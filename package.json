@@ -1,0 +1,30 @@
+{
+  "name": "rpio-pwm",
+  "version": "0.1.0",
+  "description": "DMA based soft PWM for raspberry pi gpio",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xinkaiwang/rpio-pwm.git"
+  },
+  "keywords": [
+    "DMA",
+    "soft",
+    "PWM",
+    "GPIO",
+    "raspberry",
+    "pi"
+  ],
+  "author": "xinkai wang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xinkaiwang/rpio-pwm/issues"
+  },
+  "homepage": "https://github.com/xinkaiwang/rpio-pwm#readme",
+  "dependencies": {
+    "nan": "^2.7.0"
+  }
+}
