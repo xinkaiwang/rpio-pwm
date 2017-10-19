@@ -1,8 +1,8 @@
 {
   "targets": [
     {
-      "target_name": "pwm",
-      "sources": [ "pwm.cc" ],
+      "target_name": "rpiopwm",
+      "sources": [ "rpiopwm.cc", "pwm.c" ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")"
       ]

@@ -1,5 +1,5 @@
 
-var pwm = require('./build/Release/pwm.node');
+var pwm = require('./build/Release/rpiopwm.node');
 
 function init() {
     return {
