@@ -425,7 +425,7 @@ get_cb(int channel)
 int
 clear_channel(int channel)
 {
-    int i;
+    uint32_t i;
     uint32_t phys_gpclr0 = 0x7e200000 + 0x28;
     dma_cb_t *cbp = (dma_cb_t *) get_cb(channel);
     uint32_t *dp = (uint32_t *) channels[channel].virtbase;
@@ -466,7 +466,7 @@ clear_channel(int channel)
 int
 clear_channel_gpio(int channel, int gpio)
 {
-    int i;
+    uint32_t i;
     uint32_t *dp = (uint32_t *) channels[channel].virtbase;
 
     log_debug("clear_channel_gpio: channel=%d, gpio=%d\n", channel, gpio);
@@ -508,7 +508,7 @@ add_channel_pulse(int channel, int gpio, int width_start, int width)
     log_debug("add_channel_pulse: channel=%d, gpio=%d, start=%d, width=%d\n", channel, gpio, width_start, width);
     if (!channels[channel].virtbase)
         return fatal("Error: channel %d has not been initialized with 'init_channel(..)'\n", channel);
-    if (width_start + width > channels[channel].width_max + 1 || width_start < 0)
+    if (width_start + width > (int)(channels[channel].width_max + 1) || width_start < 0)
         return fatal("Error: cannot add pulse to channel %d: width_start+width exceed max_width of %d\n", channel, channels[channel].width_max);
 
     if ((gpio_setup & 1<<gpio) == 0)
@@ -553,7 +553,7 @@ init_ctrl_data(int channel)
 
     uint32_t phys_fifo_addr;
     uint32_t phys_gpclr0 = GPIO_PHYS_BASE + 0x28;
-    int i;
+    uint32_t i;
 
     channels[channel].dma_reg = map_peripheral(DMA_VIRT_BASE, DMA_LEN) + (DMA_CHANNEL_INC * channel);
     if (channels[channel].dma_reg == NULL)
