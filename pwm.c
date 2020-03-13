@@ -86,6 +86,8 @@
 #include <sys/mman.h>
 #include "pwm.h"
 #include "mailbox.h"
+#include <sys/sysmacros.h>
+
 #define MBFILE          DEVICE_FILE_NAME    /* From mailbox.h */
 // 15 DMA channels are usable on the RPi (0..14)
 #define DMA_CHANNELS    15
