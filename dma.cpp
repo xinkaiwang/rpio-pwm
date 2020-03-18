@@ -1,21 +1,39 @@
+/*
+ * This file is part of RPIO-PWM.
+ *
+ * Copyright
+ *
+ *     Copyright (C) 2020 Xinkai Wang <xinkaiwang1017@gmail.com>
+ *
+ * License
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Lesser General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Lesser General Public License for more details at
+ *     <http://www.gnu.org/licenses/lgpl-3.0-standalone.html>
+ *
+ * Documentation
+ *
+ *     https://github.com/xinkaiwang/rpio-pwm
+ *
+ * dma.c, based on the excellent servod.c by Richard Hirst, provides flexible
+ * PWM via DMA for the Raspberry Pi, supporting a resolution of up to 1us,
+ * all 15 DMA channels, multiple GPIOs per channel, timing by PWM (default)
+ * or PCM, a Python wrapper, and more.
+ *
+ * Feedback is much appreciated.
+*/
+
 #include "dma.h"
 
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <unistd.h>
-// #include <string.h>
-// #include <errno.h>
-// #include <stdarg.h>
-// #include <stdint.h>
-// #include <signal.h>
-// #include <time.h>
-// #include <sys/time.h>
-// #include <sys/types.h>
-// #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-// #include <getopt.h>
-// #include <math.h>
 #include <bcm_host.h>
 #include <iostream>
 
@@ -274,6 +292,8 @@ void set_servo(DmaChannel &ch, int servo, int newWidth)
 	uint32_t mask = 1 << ch.pins[servo]->gpioPinNum;
 
   int oldWidth = ch.pins[servo]->servowidth;
+  printf("set_servo oldWidth=%d new=%d\n", oldWidth, newWidth);
+
 	if (newWidth > oldWidth) {
 		dp = ch.turnoff_mask + ch.servostart[servo] + newWidth;
 		if (dp >= ch.turnoff_mask + ch.num_samples)
@@ -338,7 +358,7 @@ void init_ctrl_data(DmaHardware &hw, DmaChannel& ch) {
     phys_gpset0 = GPIO_PHYS_BASE(hw) + 0x1c;
   }
 
-  if (hw.delay_hw == DelayHardware::DELAY_VIA_PWM) {
+  if (ch.delay_hw == DelayHardware::DELAY_VIA_PWM) {
     phys_fifo_addr = PWM_PHYS_BASE(hw) + 0x18;
     cbinfo = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP | DMA_D_DREQ | DMA_PER_MAP(5);
   } else {
@@ -398,7 +418,7 @@ void init_ctrl_data(DmaHardware &hw, DmaChannel& ch) {
 // L695
 void init_hardware(DmaHardware &hw, DmaChannel &ch)
 {
-	if (hw.delay_hw == DelayHardware::DELAY_VIA_PWM) {
+	if (ch.delay_hw == DelayHardware::DELAY_VIA_PWM) {
 		// Initialise PWM
 		ch.pwm_reg[PWM_CTL] = 0;
 		udelay(10);
@@ -446,7 +466,7 @@ void init_hardware(DmaHardware &hw, DmaChannel &ch)
 	ch.dma_reg[DMA_DEBUG] = 7; // clear debug error flags
 	ch.dma_reg[DMA_CS] = 0x10880001;	// go, mid priority, wait for outstanding writes
 
-	if (hw.delay_hw == DelayHardware::DELAY_VIA_PCM) {
+	if (ch.delay_hw == DelayHardware::DELAY_VIA_PCM) {
 		ch.pcm_reg[PCM_CS_A] |= 1<<2;			// Enable Tx
 	}
 }
@@ -571,7 +591,7 @@ std::shared_ptr<DmaChannel> DmaChannel::CreateInstance(const DmaChannelConfig &c
 }
 
 DmaChannel::DmaChannel(DmaHardware &hw, const DmaChannelConfig &config)
-    : hw{hw}, chNum{config.chNum}, cycle_time_us{config.cycleTimeUs}, step_time_us{config.stepTimeUs}, invert{config.invert} {
+    : hw{hw}, delay_hw{config.delay_hw}, chNum{config.chNum}, cycle_time_us{config.cycleTimeUs}, step_time_us{config.stepTimeUs}, invert{config.invert} {
   if (step_time_us < 2 || step_time_us > 1000) {
     throw std::runtime_error("Invalid step-size specified");
   }
@@ -638,7 +658,7 @@ void DmaChannel::Init() {
 void DmaChannel::DeactivateChannel() {
   auto &ch = *this;
   if (!ch.IsActive()) return;
-  printf("DeactivateChannel() channel=%d\n", ch.chNum);
+  printf("DmaChannel::DeactivateChannel() ch=%d\n", ch.chNum);
   ch.isActive = false;
 
   for (int i = 0; i < maxServoCount; i++) {
@@ -680,6 +700,14 @@ void PwmPin::Init(int slotIndex) {
   this->gpiomode = gpio_get_mode(*ch, gpioPinNum);
   gpio_set(*ch, gpioPinNum, ch->invert ? 1 : 0);
   gpio_set_mode(*ch, gpioPinNum, GPIO_MODE_OUT);
+}
+
+void PwmPin::SetByWidth(const int width) {
+  if (width < 0 || width > ch->num_samples) {
+    throw std::runtime_error("width out of range");
+  }
+  printf("setByWidth %d\n", width);
+  set_servo(*ch, slotIndex, width);
 }
 
 void PwmPin::SetByPercentage(const float pct) {

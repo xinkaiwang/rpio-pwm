@@ -16,8 +16,6 @@ typedef struct {
 
 //************************** DmaHardware ****************************
 struct DmaHardware {
-  DelayHardware delay_hw{DelayHardware::DELAY_VIA_PWM};
-
   // struct timeval *servo_kill_time; // for idle_timeout feature.
 
   uint32_t plldfreq_mhz;
@@ -40,6 +38,7 @@ struct DmaHardware {
 
 //************************** DmaChannel ****************************
 struct DmaChannelConfig {
+  DelayHardware delay_hw = DelayHardware::DELAY_VIA_PWM;
   int chNum = 14; // default 14 (for pi2/3/zero), suggest use 7 for pi4
   int cycleTimeUs = 20000; // 20ms cycle
   int stepTimeUs = 10; // 10us each step
@@ -48,7 +47,7 @@ struct DmaChannelConfig {
 
 struct DmaPwmPinConfig {
   int gpioPinNum = 21;
-  int widthInSteps = 20;
+  int widthInSteps = 0;
   bool restoreOnExit = true; // restore gpio mode when exit
 };
 
@@ -84,8 +83,8 @@ public:
 
 public:
   DmaHardware &hw;
+  const DelayHardware delay_hw;
   const int chNum;
-//   int seqCount{0};
 
   // cycle_time_us is the pulse cycle time per servo, in microseconds.
   // Typically it should be 20ms, or 20000us.
@@ -137,6 +136,8 @@ public:
   }
 
 public:
+  void SetByWidth(const int width);
+
   void SetByPercentage(const float pct);
 
   void SetByActiveTimeUs(const int timeInUs);

@@ -1,9 +1,9 @@
 /*
- * This file is part of RPIO.
+ * This file is part of RPIO-PWM.
  *
  * Copyright
  *
- *     Copyright (C) 2013 Chris Hager <chris@linuxuser.at>
+ *     Copyright (C) 2020 Xinkai Wang <xinkaiwang1017@gmail.com>
  *
  * License
  *
@@ -20,59 +20,32 @@
  *
  * Documentation
  *
- *     http://pythonhosted.org/RPIO
+ *     https://github.com/xinkaiwang/rpio-pwm
  */
+
+// #define DELAY_VIA_PWM   0
+// #define DELAY_VIA_PCM   1
+
 #ifdef __cplusplus 
 extern "C" {
 #endif
-int setup(int pw_incr_us, int hw);
-void pwm_shutdown(void);
-void set_loglevel(int level);
+// void pwm_shutdown(void);
 
-int init_channel(int channel, int subcycle_time_us);
-int clear_channel(int channel);
-int clear_channel_gpio(int channel, int gpio);
-int print_channel(int channel);
+// channel: suggest 14 (for pi2/3/zero), suggest 7 for pi4
+// delay_hw: 0=PWM, 1=PCM
+// cycle_time_us: typical value 20000=20ms each cycle
+// step_time_us: typical value 10=10us each step 
+//               (total steps = 20000/10=2000 steps)
+// invert: invert HIGH/LOW output, default 0
+int pwm_init_channel(int channel, int cycle_time_us, int step_time_us, int delay_hw, int invert);
 
-int add_channel_pulse(int channel, int gpio, int width_start, int width);
-char* get_error_message(void);
-void set_softfatal(int enabled);
+// shutdown channel before exit is always a good thing to do
+int pwm_channel_shutdown(int channel);
 
-int is_setup(void);
-int is_channel_initialized(int channel);
-int get_pulse_incr_us(void);
-int get_channel_subcycle_time_us(int channel);
+int pwm_gpio_add(int channel, int gpio, int width);
+int pwm_gpio_set_width(int gpio, int width);
+int pwm_gpio_release(int gpio);
+
 #ifdef __cplusplus
 }
 #endif
-
-#define DELAY_VIA_PWM   0
-#define DELAY_VIA_PCM   1
-
-#define LOG_LEVEL_DEBUG 0
-#define LOG_LEVEL_ERRORS 1
-#define LOG_LEVEL_DEFAULT LOG_LEVEL_DEBUG
-
-// Default subcycle time
-#define SUBCYCLE_TIME_US_DEFAULT 20000
-
-// Subcycle minimum. We kept seeing no signals and strange behavior of the RPi
-#define SUBCYCLE_TIME_US_MIN 3000
-
-// Default pulse-width-increment-granularity
-#define PULSE_WIDTH_INCREMENT_GRANULARITY_US_DEFAULT 10
-#define DELAY_VIA_PWM   0
-#define DELAY_VIA_PCM   1
-
-#define LOG_LEVEL_DEBUG 0
-#define LOG_LEVEL_ERRORS 1
-#define LOG_LEVEL_DEFAULT LOG_LEVEL_DEBUG
-
-// Default subcycle time
-#define SUBCYCLE_TIME_US_DEFAULT 20000
-
-// Subcycle minimum. We kept seeing no signals and strange behavior of the RPi
-#define SUBCYCLE_TIME_US_MIN 3000
-
-// Default pulse-width-increment-granularity
-#define PULSE_WIDTH_INCREMENT_GRANULARITY_US_DEFAULT 10
