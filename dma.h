@@ -72,12 +72,20 @@ public:
 public:
   void Init();
 
-  void Uninit();
+public:
+  void DeactivateChannel();
+
+  inline bool IsActive() { return isActive; }
+  inline void ThrowIfNotActive() {
+      if (!IsActive()) {
+          throw std::runtime_error("not active");
+      }
+  }
 
 public:
   DmaHardware &hw;
   const int chNum;
-  int seqCount{0};
+//   int seqCount{0};
 
   // cycle_time_us is the pulse cycle time per servo, in microseconds.
   // Typically it should be 20ms, or 20000us.
@@ -104,6 +112,7 @@ public:
   uint32_t *turnoff_mask;
   uint32_t *turnon_mask;
   dma_cb_t *cb_base;
+  bool isActive{false};
 
 public:
   std::vector<std::shared_ptr<PwmPin>> pins = 
@@ -120,15 +129,22 @@ public:
   PwmPin& operator = (PwmPin const&) = delete;
 
 public:
+  inline bool IsActive() { return slotIndex >= 0; }
+  inline void ThrowIfNotActive() {
+      if (!IsActive()) {
+          throw std::runtime_error("not active");
+      }
+  }
+
+public:
   void SetByPercentage(const float pct);
 
   void SetByActiveTimeUs(const int timeInUs);
 
-  void Deactivate();
+  void DeactivatePin();
 
 public:
   void Init(int slotIndex);
-  void Uninit();
 
 public:
   std::shared_ptr<DmaChannel> ch;

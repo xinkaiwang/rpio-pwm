@@ -154,31 +154,30 @@ static void udelay(int us) {
 }
 
 // L384
-void terminateChannel(DmaChannel &ch) {
-  if (ch.dma_reg && mbox.virt_addr) {
-  	for (int i = 0; i < maxServoCount; i++) {
-  		if (ch.pins[i]) {
-  			set_servo(ch, i, 0);
-      }
-  	}
-  	udelay(ch.cycle_time_us);
-  	ch.dma_reg[DMA_CS] = DMA_RESET;
-  	udelay(10);
-  }
-  // if (restore_gpio_modes) {
-  // 	for (i = 0; i < MAX_SERVOS; i++) {
-  // 		if (servo2gpio[i] != DMY)
-  // 			gpio_set_mode(servo2gpio[i], gpiomode[i]);
-  // 	}
-  // }
-}
+// void terminateChannel(DmaChannel &ch) {
+//   if (ch.dma_reg && mbox.virt_addr) {
+//   	for (int i = 0; i < maxServoCount; i++) {
+//   		if (ch.pins[i]) {
+//   			set_servo(ch, i, 0);
+//       }
+//   	}
+//   	udelay(ch.cycle_time_us);
+//   	ch.dma_reg[DMA_CS] = DMA_RESET;
+//   	udelay(10);
+//   }
+//   // if (restore_gpio_modes) {
+//   // 	for (i = 0; i < MAX_SERVOS; i++) {
+//   // 		if (servo2gpio[i] != DMY)
+//   // 			gpio_set_mode(servo2gpio[i], gpiomode[i]);
+//   // 	}
+//   // }
+// }
 
 void terminate(int dummy) {
   printf("terminate() %d\n", dummy);
   for (auto &it : hardware.channels) {
     if (auto locked = it.lock()) {
-      printf("terminate() clearing channel %d\n", locked->chNum);
-      terminateChannel(*locked);
+      locked->DeactivateChannel();
     }
   }
 
@@ -207,9 +206,7 @@ static void fatal(const char *fmt, ...) {
 // L480
 static uint32_t gpio_get_mode(DmaChannel& ch, uint32_t gpio)
 {
-    printf("gpio_get_mode() Step 0, ch.gpio_reg=0x%x, GPIO_FSEL0=0x%x gpio=%d\n", (uint)(ch.gpio_reg), GPIO_FSEL0, gpio);
 	uint32_t fsel = ch.gpio_reg[GPIO_FSEL0 + gpio/10];
-    printf("gpio_get_mode() Step 1\n");
 
 	return (fsel >> ((gpio % 10) * 3)) & 7;
 }
@@ -310,19 +307,19 @@ void set_servo(DmaChannel &ch, int servo, int newWidth)
 }
 
 // L596
-static void setup_sighandlers(void) {
-  int i;
+// static void setup_sighandlers(void) {
+//   int i;
 
-  // Catch all signals possible - it is vital we kill the DMA engine
-  // on process exit!
-  for (i = 0; i < 64; i++) {
-    struct sigaction sa;
+//   // Catch all signals possible - it is vital we kill the DMA engine
+//   // on process exit!
+//   for (i = 0; i < 64; i++) {
+//     struct sigaction sa;
 
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = terminate;
-    sigaction(i, &sa, NULL);
-  }
-}
+//     memset(&sa, 0, sizeof(sa));
+//     sa.sa_handler = terminate;
+//     sigaction(i, &sa, NULL);
+//   }
+// }
 
 // L612
 void init_ctrl_data(DmaHardware &hw, DmaChannel& ch) {
@@ -550,7 +547,7 @@ bool setup_hardware(DmaHardware &hw) {
   get_model_and_revision(hw);
 
   // init_idle_timers(hw);
-  setup_sighandlers();
+  // setup_sighandlers();
 
   return true;
 }
@@ -568,11 +565,8 @@ std::shared_ptr<DmaChannel> DmaChannel::CreateInstance(const DmaChannelConfig &c
   }
   auto ch =
       std::make_shared<DmaChannel>(hardware, config);
-printf("DmaChannel::CreateInstance()1 ch.gpio_reg=0x%x\n", (uint)(ch->gpio_reg));
   ch->Init();
-printf("DmaChannel::CreateInstance()2 ch.gpio_reg=0x%x\n", (uint)(ch->gpio_reg));
   hardware.channels.push_back(ch);
-printf("DmaChannel::CreateInstance()3 ch.gpio_reg=0x%x\n", (uint)(ch->gpio_reg));
   return ch;
 }
 
@@ -611,7 +605,6 @@ void DmaChannel::Init() {
       static_cast<uint32_t *>(map_peripheral(CLK_VIRT_BASE(hw), CLK_LEN));
   ch.gpio_reg =
       static_cast<uint32_t *>(map_peripheral(GPIO_VIRT_BASE(hw), GPIO_LEN));
-  printf("DmaChannel::Init() ch.gpio_reg=0x%x, ch.pwm_reg=0x%x\n", (uint)(ch.gpio_reg), (uint)(ch.pwm_reg));
   /* Use the mailbox interface to the VC to ask for physical memory */
   // Use the mailbox interface to request memory from the VideoCore
   // We specifiy (-1) for the handle rather than calling mbox_open()
@@ -637,33 +630,41 @@ void DmaChannel::Init() {
       (dma_cb_t *)(mbox.virt_addr +
                    ROUNDUP(ch.num_samples + maxServoCount, 8) * sizeof(uint32_t));
 
-  printf("DmaChannel::Init()2 ch.gpio_reg=0x%x, ch.pwm_reg=0x%x\n", (uint)(ch.gpio_reg), (uint)(ch.pwm_reg));
   init_ctrl_data(hw, ch);
-  printf("DmaChannel::Init()3 ch.gpio_reg=0x%x, ch.pwm_reg=0x%x\n", (uint)(ch.gpio_reg), (uint)(ch.pwm_reg));
   init_hardware(hw, ch);
-  printf("DmaChannel::Init()4 ch.gpio_reg=0x%x, ch.pwm_reg=0x%x\n", (uint)(ch.gpio_reg), (uint)(ch.pwm_reg));
+  ch.isActive = true;
+}
+
+void DmaChannel::DeactivateChannel() {
+  auto &ch = *this;
+  if (!ch.IsActive()) return;
+  printf("DeactivateChannel() channel=%d\n", ch.chNum);
+  ch.isActive = false;
+
+  for (int i = 0; i < maxServoCount; i++) {
+      if (ch.pins[i]) {
+          ch.pins[i]->DeactivatePin();
+      }
+  }
+  udelay(ch.cycle_time_us);
+  ch.dma_reg[DMA_CS] = DMA_RESET;
+  udelay(10);
 }
 
 std::shared_ptr<PwmPin> DmaChannel::CreatePin(const DmaPwmPinConfig &pinConfig) {
-  printf("DmaChannel::CreatePin() ch.gpio_reg=0x%x\n", (uint)(gpio_reg));
   auto pin = std::make_shared<PwmPin>(this->shared_from_this(), pinConfig);
   
-  printf("CreatePin() Step 1\n");
   // find next available slot in pins
   int servo=0;
   while(servo < maxServoCount && pins[servo] != nullptr) {
     servo++;
   }
-  printf("CreatePin() Step 2\n");
   if (servo == maxServoCount) {
     throw std::runtime_error("run out of availabel slots");
   }
-  printf("CreatePin() Step 3\n");
   pins[servo] = pin;
   pin->Init(servo);
-  printf("CreatePin() Step 4\n");
   set_servo(*this, servo, pinConfig.widthInSteps);
-  printf("CreatePin() Step 5\n");
 
   return pin;
 }
@@ -672,23 +673,13 @@ std::shared_ptr<PwmPin> DmaChannel::CreatePin(const DmaPwmPinConfig &pinConfig) 
 PwmPin::PwmPin(std::shared_ptr<DmaChannel> dmaChannel, const DmaPwmPinConfig &pinConfig):
   ch{dmaChannel}, gpioPinNum{pinConfig.gpioPinNum}, restoreOnExit{pinConfig.restoreOnExit} {
     //
-    printf("PwmPin::PwmPin() ch.gpio_reg=0x%x\n", (uint)(ch->gpio_reg));
   }
 
 void PwmPin::Init(int slotIndex) {
-  printf("PwmPin::Init() Step 0\n");
   this->slotIndex = slotIndex;
-  printf("PwmPin::Init() Step 1\n");
   this->gpiomode = gpio_get_mode(*ch, gpioPinNum);
-  printf("PwmPin::Init() Step 2\n");
   gpio_set(*ch, gpioPinNum, ch->invert ? 1 : 0);
-  printf("PwmPin::Init() Step 3\n");
   gpio_set_mode(*ch, gpioPinNum, GPIO_MODE_OUT);
-  printf("PwmPin::Init() Step 4\n");
-}
-
-void PwmPin::Uninit() {
-  //
 }
 
 void PwmPin::SetByPercentage(const float pct) {
@@ -713,11 +704,16 @@ void PwmPin::SetByActiveTimeUs(const int timeInUs) {
   set_servo(*ch, slotIndex, newWidth);
 }
 
-void PwmPin::Deactivate() {
+void PwmPin::DeactivatePin() {
   if (slotIndex < 0) {
-    throw std::runtime_error("already deactivated?");
+    // already deactivated?
+    return;
   }
-  
+  // to avoid destruct before exit scope
+  std::shared_ptr<PwmPin> self = shared_from_this();
+  set_servo(*ch, slotIndex, 0 /*newWidth*/);
+  ch->pins[slotIndex] = nullptr;
+  slotIndex = -1;
 }
 
 //************************** TestDma ****************************
