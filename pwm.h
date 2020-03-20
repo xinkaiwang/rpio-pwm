@@ -37,7 +37,7 @@ extern "C" {
 // step_time_us: typical value 10=10us each step 
 //               (total steps = 20000/10=2000 steps)
 // invert: invert HIGH/LOW output, default 0
-int pwm_init_channel(int channel, int cycle_time_us, int step_time_us, int delay_hw, int invert);
+int pwm_channel_init(int channel, int cycle_time_us, int step_time_us, int delay_hw, int invert);
 
 // shutdown channel before exit is always a good thing to do
 int pwm_channel_shutdown(int channel);

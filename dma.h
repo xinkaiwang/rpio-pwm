@@ -10,6 +10,8 @@ enum class DelayHardware { DELAY_VIA_PWM = 0, DELAY_VIA_PCM = 1 };
 class DmaChannel;
 class PwmPin;
 
+void fatal(const char *fmt, ...);
+
 typedef struct {
   uint32_t info, src, dst, length, stride, next, pad[2];
 } dma_cb_t;
@@ -77,7 +79,7 @@ public:
   inline bool IsActive() { return isActive; }
   inline void ThrowIfNotActive() {
       if (!IsActive()) {
-          throw std::runtime_error("not active");
+          fatal("not active");
       }
   }
 
@@ -131,7 +133,7 @@ public:
   inline bool IsActive() { return slotIndex >= 0; }
   inline void ThrowIfNotActive() {
       if (!IsActive()) {
-          throw std::runtime_error("not active");
+          fatal("not active");
       }
   }
 

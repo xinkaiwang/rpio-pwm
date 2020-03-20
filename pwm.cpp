@@ -64,7 +64,7 @@ std::unordered_map<int, std::shared_ptr<PwmPin>> pins;
 // step_time_us: typical value 10=10us each step 
 //               (total steps = 20000/10=2000 steps)
 // invert: invert HIGH/LOW output, default 0
-int pwm_init_channel(int ch, int cycle_time_us, int step_time_us, int delay_hw, int invert) {
+int pwm_channel_init(int ch, int cycle_time_us, int step_time_us, int delay_hw, int invert) {
   if (channels.find(ch) != channels.end()) {
     // channel already exist?
     return 1;
@@ -136,7 +136,7 @@ int main() {
   int ch = 14;
   int pin = 21; // GPIO_21 = Phys_40 = wiringPi_29
   unsigned int sleepUs = 1*1000*1000;
-  pwm_init_channel(ch, 20000, 10, 1 /*delay_hw*/, 0 /*invert*/);
+  pwm_channel_init(ch, 20000, 10, 1 /*delay_hw*/, 0 /*invert*/);
   pwm_gpio_add(ch, pin, 2000);
   usleep(sleepUs);
   pwm_gpio_set_width(pin, 800);

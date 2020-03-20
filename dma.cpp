@@ -210,17 +210,6 @@ void terminate(int dummy) {
   exit(1);
 }
 
-// L416
-static void fatal(const char *fmt, ...) {
-  printf("fatal() %s\n", fmt);
-  va_list ap;
-
-  va_start(ap, fmt);
-  vfprintf(stderr, fmt, ap);
-  va_end(ap);
-  terminate(0);
-}
-
 // L480
 static uint32_t gpio_get_mode(DmaChannel& ch, uint32_t gpio)
 {
@@ -265,10 +254,10 @@ static void *map_peripheral(uint32_t base, uint32_t len) {
   void *vaddr;
 
   if (fd < 0)
-    fatal("servod: Failed to open /dev/mem: %m\n");
+    fatal("rpio-pwm: Failed to open /dev/mem: %m\n");
   vaddr = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, base);
   if (vaddr == MAP_FAILED)
-    fatal("servod: Failed to map peripheral at 0x%08x: %m\n", base);
+    fatal("rpio-pwm: Failed to map peripheral at 0x%08x: %m\n", base);
   close(fd);
 
   return vaddr;
@@ -502,24 +491,24 @@ void get_model_and_revision(DmaHardware &hw) {
   fclose(fp);
 
   if (modelstr[0] == '\0')
-    fatal("servod: No 'Hardware' record in /proc/cpuinfo\n");
+    fatal("rpio-pwm: No 'Hardware' record in /proc/cpuinfo\n");
   if (revstr[0] == '\0')
-    fatal("servod: No 'Revision' record in /proc/cpuinfo\n");
+    fatal("rpio-pwm: No 'Revision' record in /proc/cpuinfo\n");
 
   if (strstr(modelstr, "BCM2708"))
     hw.board_model = 1;
   else if (strstr(modelstr, "BCM2709") || strstr(modelstr, "BCM2835"))
     hw.board_model = 2;
   else
-    fatal("servod: Cannot parse the hardware name string\n");
+    fatal("rpio-pwm: Cannot parse the hardware name string\n");
 
   /* Revisions documented at http://elinux.org/RPi_HardwareHistory */
   ptr = revstr + strlen(revstr) - 3;
   board_revision = strtol(ptr, &end, 16);
   if (end != ptr + 2)
-    fatal("servod: Failed to parse Revision string\n");
+    fatal("rpio-pwm: Failed to parse Revision string\n");
   if (board_revision < 1)
-    fatal("servod: Invalid board Revision\n");
+    fatal("rpio-pwm: Invalid board Revision\n");
   else if (board_revision < 4)
     hw.gpio_cfg = 1;
   else if (board_revision < 16)
@@ -576,6 +565,17 @@ bool setup_hardware(DmaHardware &hw) {
 
 namespace wpp {
 
+// L416
+void fatal(const char *fmt, ...) {
+  printf("fatal() %s\n", fmt);
+  va_list ap;
+
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
+  terminate(0);
+}
+
 //************************** DmaChannel ****************************
 // static
 std::shared_ptr<DmaChannel> DmaChannel::CreateInstance(const DmaChannelConfig &config) {
@@ -593,16 +593,16 @@ std::shared_ptr<DmaChannel> DmaChannel::CreateInstance(const DmaChannelConfig &c
 DmaChannel::DmaChannel(DmaHardware &hw, const DmaChannelConfig &config)
     : hw{hw}, delay_hw{config.delay_hw}, chNum{config.chNum}, cycle_time_us{config.cycleTimeUs}, step_time_us{config.stepTimeUs}, invert{config.invert} {
   if (step_time_us < 2 || step_time_us > 1000) {
-    throw std::runtime_error("Invalid step-size specified");
+    fatal("Invalid step-size specified");
   }
   if (cycle_time_us < 1000 || cycle_time_us > 1000000) {
-    throw std::runtime_error("Invalid cycle-time specified");
+    fatal("Invalid cycle-time specified");
   }
 	if (cycle_time_us % step_time_us) {
-		throw std::runtime_error("cycle-time is not a multiple of step-size");
+		fatal("cycle-time is not a multiple of step-size");
 	}
 	if (cycle_time_us / step_time_us < 100) {
-		throw std::runtime_error("cycle-time must be at least 100 * step-size");
+		fatal("cycle-time must be at least 100 * step-size");
 	}
 }
 
@@ -653,6 +653,7 @@ void DmaChannel::Init() {
   init_ctrl_data(hw, ch);
   init_hardware(hw, ch);
   ch.isActive = true;
+  printf("DmaChannel::Init() ch=%d, cycle_time_us=%d, step_time_us=%d, num_samples=%d\n", chNum, cycle_time_us, step_time_us, num_samples);
 }
 
 void DmaChannel::DeactivateChannel() {
@@ -680,7 +681,7 @@ std::shared_ptr<PwmPin> DmaChannel::CreatePin(const DmaPwmPinConfig &pinConfig) 
     servo++;
   }
   if (servo == maxServoCount) {
-    throw std::runtime_error("run out of availabel slots");
+    fatal("run out of availabel slots");
   }
   pins[servo] = pin;
   pin->Init(servo);
@@ -704,7 +705,7 @@ void PwmPin::Init(int slotIndex) {
 
 void PwmPin::SetByWidth(const int width) {
   if (width < 0 || width > ch->num_samples) {
-    throw std::runtime_error("width out of range");
+    fatal("width out of range");
   }
   printf("setByWidth %d\n", width);
   set_servo(*ch, slotIndex, width);
@@ -712,10 +713,10 @@ void PwmPin::SetByWidth(const int width) {
 
 void PwmPin::SetByPercentage(const float pct) {
   if (slotIndex < 0) {
-    throw std::runtime_error("already deactivated?");
+    fatal("already deactivated?");
   }
   if (pct < 0.0f || pct > 100.0f) {
-    throw std::runtime_error("pct out of range");
+    fatal("pct out of range");
   }
   int newWidth = static_cast<int>(pct * ch->num_samples / 100.0f);
   set_servo(*ch, slotIndex, newWidth);
@@ -723,10 +724,10 @@ void PwmPin::SetByPercentage(const float pct) {
 
 void PwmPin::SetByActiveTimeUs(const int timeInUs) {
   if (slotIndex < 0) {
-    throw std::runtime_error("already deactivated?");
+    fatal("already deactivated?");
   }
   if (timeInUs < 0 || timeInUs > ch->cycle_time_us) {
-    throw std::runtime_error("timeInUs out of range");
+    fatal("timeInUs out of range");
   }
   int newWidth = timeInUs / ch->step_time_us;
   set_servo(*ch, slotIndex, newWidth);
