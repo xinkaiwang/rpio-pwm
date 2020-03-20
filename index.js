@@ -9,7 +9,7 @@ function create_dma_channel(ch /*int*/, cfg /*json obj*/) {
   pwm.init_channel(ch, cycle_time_us, step_time_us, delay_hw, invert);
 
   function create_pwm(gpio) {
-    pwm.add_gpio(ch, gpio, 1000);
+    pwm.add_gpio(ch, gpio, 0);
 
     function set_width(newWidth) {
       pwm.set_width(gpio, newWidth);

@@ -315,6 +315,22 @@ void set_servo(DmaChannel &ch, int servo, int newWidth)
 	}
 }
 
+void set_mask_all(DmaChannel &ch, int servo) {
+  volatile uint32_t *dp;
+  uint32_t mask = 1 << ch.pins[servo]->gpioPinNum;
+  for (dp = ch.turnoff_mask; dp < ch.turnoff_mask+ch.num_samples;) {
+    *dp++ |= mask;
+  }
+}
+
+void clear_mask_all(DmaChannel &ch, int servo) {
+  volatile uint32_t *dp;
+  uint32_t mask = 1 << ch.pins[servo]->gpioPinNum;
+  for (dp = ch.turnoff_mask; dp < ch.turnoff_mask+ch.num_samples;) {
+    *dp++ &= ~mask;
+  }
+}
+
 // L596
 // static void setup_sighandlers(void) {
 //   int i;
@@ -685,6 +701,7 @@ std::shared_ptr<PwmPin> DmaChannel::CreatePin(const DmaPwmPinConfig &pinConfig) 
   }
   pins[servo] = pin;
   pin->Init(servo);
+  set_mask_all(*this, servo);
   set_servo(*this, servo, pinConfig.widthInSteps);
 
   return pin;
@@ -707,7 +724,6 @@ void PwmPin::SetByWidth(const int width) {
   if (width < 0 || width > ch->num_samples) {
     fatal("width out of range");
   }
-  printf("setByWidth %d\n", width);
   set_servo(*ch, slotIndex, width);
 }
 
@@ -741,6 +757,7 @@ void PwmPin::DeactivatePin() {
   // to avoid destruct before exit scope
   std::shared_ptr<PwmPin> self = shared_from_this();
   set_servo(*ch, slotIndex, 0 /*newWidth*/);
+  clear_mask_all(*ch, slotIndex);
   ch->pins[slotIndex] = nullptr;
   slotIndex = -1;
 }
