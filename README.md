@@ -1,7 +1,9 @@
 # rpio-pwm
 High performance soft PWM for raspberry pi. Unlike hardware PWM (which limited to those special 4 hardware PWM ports), rpio-pwm allow you to use any GPIO pins. Unlike other soft PWM solutions (which use lot's CPU cycles to switch on/off based on timers), rpio-pwm use DMA, so literily 0 CPU usage at run time.
 
-Note: This current version (1.0.0) is NOT compatible with privous version (0.2.x). This is a total re-write, the new API is much simpler and also more powerful. And the new code is only depend on servoblaster (not depend on python rpio-pwm project any more).
+Note: This current version (1.0.0) is NOT compatible with privous version (0.2.x). This is a total re-write, the new API is much simpler and also more powerful. The new code is only depend on servoblaster.
+
+Pi4 support: Yes, rpio-pwm >1.0.0 supports Pi4, remember to use channel 7 (on Pi4) in stead of 14 (for pi3/2/zero). I tested, it works out of the box.
 
 # install
 
