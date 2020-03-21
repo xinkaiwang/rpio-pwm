@@ -28,14 +28,14 @@
  * or PCM, a Python wrapper, and more.
  *
  * Feedback is much appreciated.
-*/
+ */
 
 #include "dma.h"
 
-#include <fcntl.h>
-#include <sys/mman.h>
 #include <bcm_host.h>
+#include <fcntl.h>
 #include <iostream>
+#include <sys/mman.h>
 
 #include "mailbox.h"
 
@@ -151,7 +151,7 @@ using namespace wpp;
 
 namespace {
 
-DmaHardware hardware{};
+// DmaHardware hardware{};
 
 // L362
 static struct {
@@ -193,59 +193,52 @@ static void udelay(int us) {
 
 void terminate(int dummy) {
   printf("terminate() %d\n", dummy);
-  for (auto &it : hardware.channels) {
+  for (auto &it : DmaHardware::GetInstance().channels) {
     if (auto locked = it.lock()) {
       locked->DeactivateChannel();
     }
   }
 
   if (mbox.virt_addr != NULL) {
-  	unmapmem(mbox.virt_addr, mbox.size);
-  	mem_unlock(mbox.handle, mbox.mem_ref);
-  	mem_free(mbox.handle, mbox.mem_ref);
-  	if (mbox.handle >= 0)
-  		mbox_close(mbox.handle);
+    unmapmem(mbox.virt_addr, mbox.size);
+    mem_unlock(mbox.handle, mbox.mem_ref);
+    mem_free(mbox.handle, mbox.mem_ref);
+    if (mbox.handle >= 0)
+      mbox_close(mbox.handle);
   }
 
   exit(1);
 }
 
 // L480
-static uint32_t gpio_get_mode(DmaChannel& ch, uint32_t gpio)
-{
-	uint32_t fsel = ch.gpio_reg[GPIO_FSEL0 + gpio/10];
+static uint32_t gpio_get_mode(DmaChannel &ch, uint32_t gpio) {
+  uint32_t fsel = ch.gpio_reg[GPIO_FSEL0 + gpio / 10];
 
-	return (fsel >> ((gpio % 10) * 3)) & 7;
+  return (fsel >> ((gpio % 10) * 3)) & 7;
 }
 
 // L488
-static void
-gpio_set_mode(DmaChannel &ch, uint32_t gpio, uint32_t mode)
-{
-	uint32_t fsel = ch.gpio_reg[GPIO_FSEL0 + gpio/10];
+static void gpio_set_mode(DmaChannel &ch, uint32_t gpio, uint32_t mode) {
+  uint32_t fsel = ch.gpio_reg[GPIO_FSEL0 + gpio / 10];
 
-	fsel &= ~(7 << ((gpio % 10) * 3));
-	fsel |= mode << ((gpio % 10) * 3);
-	ch.gpio_reg[GPIO_FSEL0 + gpio/10] = fsel;
+  fsel &= ~(7 << ((gpio % 10) * 3));
+  fsel |= mode << ((gpio % 10) * 3);
+  ch.gpio_reg[GPIO_FSEL0 + gpio / 10] = fsel;
 }
 
 // L498
-static void
-gpio_set(DmaChannel &ch, int gpio, int level)
-{
-	if (level)
-		ch.gpio_reg[GPIO_SET0] = 1 << gpio;
-	else
-		ch.gpio_reg[GPIO_CLR0] = 1 << gpio;
+static void gpio_set(DmaChannel &ch, int gpio, int level) {
+  if (level)
+    ch.gpio_reg[GPIO_SET0] = 1 << gpio;
+  else
+    ch.gpio_reg[GPIO_CLR0] = 1 << gpio;
 }
 
 // L506
-static uint32_t
-mem_virt_to_phys(void *virt)
-{
-	uint32_t offset = (uint8_t *)virt - mbox.virt_addr;
+static uint32_t mem_virt_to_phys(void *virt) {
+  uint32_t offset = (uint8_t *)virt - mbox.virt_addr;
 
-	return mbox.bus_addr + offset;
+  return mbox.bus_addr + offset;
 }
 
 // L515
@@ -274,51 +267,50 @@ static void *map_peripheral(uint32_t base, uint32_t len) {
  * mask appropriately at the end of this function.
  */
 // L556
-void set_servo(DmaChannel &ch, int servo, int newWidth)
-{
-	volatile uint32_t *dp;
-	int i;
-	uint32_t mask = 1 << ch.pins[servo]->gpioPinNum;
+void set_servo(DmaChannel &ch, int servo, int newWidth) {
+  volatile uint32_t *dp;
+  int i;
+  uint32_t mask = 1 << ch.pins[servo]->gpioPinNum;
 
   int oldWidth = ch.pins[servo]->servowidth;
   printf("set_servo oldWidth=%d new=%d\n", oldWidth, newWidth);
 
-	if (newWidth > oldWidth) {
-		dp = ch.turnoff_mask + ch.servostart[servo] + newWidth;
-		if (dp >= ch.turnoff_mask + ch.num_samples)
-			dp -= ch.num_samples;
+  if (newWidth > oldWidth) {
+    dp = ch.turnoff_mask + ch.servostart[servo] + newWidth;
+    if (dp >= ch.turnoff_mask + ch.num_samples)
+      dp -= ch.num_samples;
 
-		for (i = newWidth; i > oldWidth; i--) {
-			dp--;
-			if (dp < ch.turnoff_mask)
-				dp = ch.turnoff_mask + ch.num_samples - 1;
-			//printf("%5d, clearing at %p\n", dp - ctl->turnoff, dp);
-			*dp &= ~mask;
-		}
-	} else if (newWidth < oldWidth) {
-		dp = ch.turnoff_mask + ch.servostart[servo] + newWidth;
-		if (dp >= ch.turnoff_mask + ch.num_samples)
-			dp -= ch.num_samples;
+    for (i = newWidth; i > oldWidth; i--) {
+      dp--;
+      if (dp < ch.turnoff_mask)
+        dp = ch.turnoff_mask + ch.num_samples - 1;
+      // printf("%5d, clearing at %p\n", dp - ctl->turnoff, dp);
+      *dp &= ~mask;
+    }
+  } else if (newWidth < oldWidth) {
+    dp = ch.turnoff_mask + ch.servostart[servo] + newWidth;
+    if (dp >= ch.turnoff_mask + ch.num_samples)
+      dp -= ch.num_samples;
 
-		for (i = newWidth; i < oldWidth; i++) {
-			//printf("%5d, setting at %p\n", dp - ctl->turnoff, dp);
-			*dp++ |= mask;
-			if (dp >= ch.turnoff_mask + ch.num_samples)
-				dp = ch.turnoff_mask;
-		}
-	}
-	ch.pins[servo]->servowidth = newWidth;
-	if (newWidth == 0) {
-		ch.turnon_mask[servo] = 0;
-	} else {
-		ch.turnon_mask[servo] = mask;
-	}
+    for (i = newWidth; i < oldWidth; i++) {
+      // printf("%5d, setting at %p\n", dp - ctl->turnoff, dp);
+      *dp++ |= mask;
+      if (dp >= ch.turnoff_mask + ch.num_samples)
+        dp = ch.turnoff_mask;
+    }
+  }
+  ch.pins[servo]->servowidth = newWidth;
+  if (newWidth == 0) {
+    ch.turnon_mask[servo] = 0;
+  } else {
+    ch.turnon_mask[servo] = mask;
+  }
 }
 
 void set_mask_all(DmaChannel &ch, int servo) {
   volatile uint32_t *dp;
   uint32_t mask = 1 << ch.pins[servo]->gpioPinNum;
-  for (dp = ch.turnoff_mask; dp < ch.turnoff_mask+ch.num_samples;) {
+  for (dp = ch.turnoff_mask; dp < ch.turnoff_mask + ch.num_samples;) {
     *dp++ |= mask;
   }
 }
@@ -326,7 +318,7 @@ void set_mask_all(DmaChannel &ch, int servo) {
 void clear_mask_all(DmaChannel &ch, int servo) {
   volatile uint32_t *dp;
   uint32_t mask = 1 << ch.pins[servo]->gpioPinNum;
-  for (dp = ch.turnoff_mask; dp < ch.turnoff_mask+ch.num_samples;) {
+  for (dp = ch.turnoff_mask; dp < ch.turnoff_mask + ch.num_samples;) {
     *dp++ &= ~mask;
   }
 }
@@ -347,7 +339,7 @@ void clear_mask_all(DmaChannel &ch, int servo) {
 // }
 
 // L612
-void init_ctrl_data(DmaHardware &hw, DmaChannel& ch) {
+void init_ctrl_data(DmaHardware &hw, DmaChannel &ch) {
   dma_cb_t *cbp = ch.cb_base;
   uint32_t phys_fifo_addr, cbinfo;
   uint32_t phys_gpclr0;
@@ -382,7 +374,7 @@ void init_ctrl_data(DmaHardware &hw, DmaChannel& ch) {
   // }
 
   for (int i = 0; i < ch.num_samples; i++)
-  	ch.turnoff_mask[i] = maskall;
+    ch.turnoff_mask[i] = maskall;
 
   for (uint32_t servo = 0; servo < ch.pins.size(); servo++) {
     ch.servostart[servo] = curstart;
@@ -390,90 +382,96 @@ void init_ctrl_data(DmaHardware &hw, DmaChannel& ch) {
   }
 
   for (int i = 0, servo = 0; i < ch.num_samples; i++) {
-  	cbp->info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP;
-  	cbp->src = mem_virt_to_phys(ch.turnoff_mask + i);
-  	cbp->dst = phys_gpclr0;
-  	cbp->length = 4;
-  	cbp->stride = 0;
-  	cbp->next = mem_virt_to_phys(cbp + 1);
-  	cbp++;
-  	if (servo < maxServoCount && i == ch.servostart[servo]) {
-  		cbp->info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP;
-  		cbp->src = mem_virt_to_phys(ch.turnon_mask + servo);
-  		cbp->dst = phys_gpset0;
-  		cbp->length = 4;
-  		cbp->stride = 0;
-  		cbp->next = mem_virt_to_phys(cbp + 1);
-  		cbp++;
-  		servo++;
-  	}
-  	// Delay
-  	cbp->info = cbinfo;
-  	cbp->src = mem_virt_to_phys(ch.turnoff_mask);	// Any data will do
-  	cbp->dst = phys_fifo_addr;
-  	cbp->length = 4;
-  	cbp->stride = 0;
-  	cbp->next = mem_virt_to_phys(cbp + 1);
-  	cbp++;
+    cbp->info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP;
+    cbp->src = mem_virt_to_phys(ch.turnoff_mask + i);
+    cbp->dst = phys_gpclr0;
+    cbp->length = 4;
+    cbp->stride = 0;
+    cbp->next = mem_virt_to_phys(cbp + 1);
+    cbp++;
+    if (servo < maxServoCount && i == ch.servostart[servo]) {
+      cbp->info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP;
+      cbp->src = mem_virt_to_phys(ch.turnon_mask + servo);
+      cbp->dst = phys_gpset0;
+      cbp->length = 4;
+      cbp->stride = 0;
+      cbp->next = mem_virt_to_phys(cbp + 1);
+      cbp++;
+      servo++;
+    }
+    // Delay
+    cbp->info = cbinfo;
+    cbp->src = mem_virt_to_phys(ch.turnoff_mask); // Any data will do
+    cbp->dst = phys_fifo_addr;
+    cbp->length = 4;
+    cbp->stride = 0;
+    cbp->next = mem_virt_to_phys(cbp + 1);
+    cbp++;
   }
   cbp--;
   cbp->next = mem_virt_to_phys(ch.cb_base);
 }
 
 // L695
-void init_hardware(DmaHardware &hw, DmaChannel &ch)
-{
-	if (ch.delay_hw == DelayHardware::DELAY_VIA_PWM) {
-		// Initialise PWM
-		ch.pwm_reg[PWM_CTL] = 0;
-		udelay(10);
-		ch.clk_reg[PWMCLK_CNTL] = 0x5A000006;		// Source=PLLD (500MHz or 750MHz on Pi4)
-		udelay(100);
-		ch.clk_reg[PWMCLK_DIV] = 0x5A000000 | (hw.plldfreq_mhz<<12);	// set pwm div to give 1MHz
-		udelay(100);
-		ch.clk_reg[PWMCLK_CNTL] = 0x5A000016;		// Source=PLLD and enable
-		udelay(100);
-		ch.pwm_reg[PWM_RNG1] = ch.step_time_us;
-		udelay(10);
-		ch.pwm_reg[PWM_DMAC] = PWMDMAC_ENAB | PWMDMAC_THRSHLD;
-		udelay(10);
-		ch.pwm_reg[PWM_CTL] = PWMCTL_CLRF;
-		udelay(10);
-		ch.pwm_reg[PWM_CTL] = PWMCTL_USEF1 | PWMCTL_PWEN1;
-		udelay(10);
-	} else {
-		// Initialise PCM
-		ch.pcm_reg[PCM_CS_A] = 1;				// Disable Rx+Tx, Enable PCM block
-		udelay(100);
-		ch.clk_reg[PCMCLK_CNTL] = 0x5A000006;		// Source=PLLD (500MHz or 750MHz on Pi4)
-		udelay(100);
-		ch.clk_reg[PCMCLK_DIV] = 0x5A000000 | (hw.plldfreq_mhz<<12);	// Set pcm div to give 1MHz
-		udelay(100);
-		ch.clk_reg[PCMCLK_CNTL] = 0x5A000016;		// Source=PLLD and enable
-		udelay(100);
-		ch.pcm_reg[PCM_TXC_A] = 0U<<31 | 1<<30 | 0<<20 | 0<<16; // 1 channel, 8 bits
-		udelay(100);
-		ch.pcm_reg[PCM_MODE_A] = (ch.step_time_us - 1) << 10;
-		udelay(100);
-		ch.pcm_reg[PCM_CS_A] |= 1<<4 | 1<<3;		// Clear FIFOs
-		udelay(100);
-		ch.pcm_reg[PCM_DREQ_A] = 64<<24 | 64<<8;		// DMA Req when one slot is free?
-		udelay(100);
-		ch.pcm_reg[PCM_CS_A] |= 1<<9;			// Enable DMA
-		udelay(100);
-	}
+void init_hardware(DmaHardware &hw, DmaChannel &ch) {
+  if (ch.delay_hw == DelayHardware::DELAY_VIA_PWM) {
+    // Initialise PWM
+    ch.pwm_reg[PWM_CTL] = 0;
+    udelay(10);
+    ch.clk_reg[PWMCLK_CNTL] =
+        0x5A000006; // Source=PLLD (500MHz or 750MHz on Pi4)
+    udelay(100);
+    ch.clk_reg[PWMCLK_DIV] =
+        0x5A000000 | (hw.plldfreq_mhz << 12); // set pwm div to give 1MHz
+    udelay(100);
+    ch.clk_reg[PWMCLK_CNTL] = 0x5A000016; // Source=PLLD and enable
+    udelay(100);
+    ch.pwm_reg[PWM_RNG1] = ch.step_time_us;
+    udelay(10);
+    ch.pwm_reg[PWM_DMAC] = PWMDMAC_ENAB | PWMDMAC_THRSHLD;
+    udelay(10);
+    ch.pwm_reg[PWM_CTL] = PWMCTL_CLRF;
+    udelay(10);
+    ch.pwm_reg[PWM_CTL] = PWMCTL_USEF1 | PWMCTL_PWEN1;
+    udelay(10);
+  } else {
+    // Initialise PCM
+    ch.pcm_reg[PCM_CS_A] = 1; // Disable Rx+Tx, Enable PCM block
+    udelay(100);
+    ch.clk_reg[PCMCLK_CNTL] =
+        0x5A000006; // Source=PLLD (500MHz or 750MHz on Pi4)
+    udelay(100);
+    ch.clk_reg[PCMCLK_DIV] =
+        0x5A000000 | (hw.plldfreq_mhz << 12); // Set pcm div to give 1MHz
+    udelay(100);
+    ch.clk_reg[PCMCLK_CNTL] = 0x5A000016; // Source=PLLD and enable
+    udelay(100);
+    ch.pcm_reg[PCM_TXC_A] =
+        0U << 31 | 1 << 30 | 0 << 20 | 0 << 16; // 1 channel, 8 bits
+    udelay(100);
+    ch.pcm_reg[PCM_MODE_A] = (ch.step_time_us - 1) << 10;
+    udelay(100);
+    ch.pcm_reg[PCM_CS_A] |= 1 << 4 | 1 << 3; // Clear FIFOs
+    udelay(100);
+    ch.pcm_reg[PCM_DREQ_A] =
+        64 << 24 | 64 << 8; // DMA Req when one slot is free?
+    udelay(100);
+    ch.pcm_reg[PCM_CS_A] |= 1 << 9; // Enable DMA
+    udelay(100);
+  }
 
-	// Initialise the DMA
-	ch.dma_reg[DMA_CS] = DMA_RESET;
-	udelay(10);
-	ch.dma_reg[DMA_CS] = DMA_INT | DMA_END;
-	ch.dma_reg[DMA_CONBLK_AD] = mem_virt_to_phys(ch.cb_base);
-	ch.dma_reg[DMA_DEBUG] = 7; // clear debug error flags
-	ch.dma_reg[DMA_CS] = 0x10880001;	// go, mid priority, wait for outstanding writes
+  // Initialise the DMA
+  ch.dma_reg[DMA_CS] = DMA_RESET;
+  udelay(10);
+  ch.dma_reg[DMA_CS] = DMA_INT | DMA_END;
+  ch.dma_reg[DMA_CONBLK_AD] = mem_virt_to_phys(ch.cb_base);
+  ch.dma_reg[DMA_DEBUG] = 7; // clear debug error flags
+  ch.dma_reg[DMA_CS] =
+      0x10880001; // go, mid priority, wait for outstanding writes
 
-	if (ch.delay_hw == DelayHardware::DELAY_VIA_PCM) {
-		ch.pcm_reg[PCM_CS_A] |= 1<<2;			// Enable Tx
-	}
+  if (ch.delay_hw == DelayHardware::DELAY_VIA_PCM) {
+    ch.pcm_reg[PCM_CS_A] |= 1 << 2; // Enable Tx
+  }
 }
 
 /* Determining the board revision is a lot more complicated than it should be
@@ -534,9 +532,11 @@ void get_model_and_revision(DmaHardware &hw) {
 
   if (bcm_host_is_model_pi4()) {
     hw.plldfreq_mhz = PLLDFREQ_MHZ_PI4;
+    hw.host_is_model_pi4 = true;
     // hw.dma_chan = DMA_CHAN_PI4;
   } else {
     hw.plldfreq_mhz = PLLDFREQ_MHZ_DEFAULT;
+    hw.host_is_model_pi4 = false;
     // hw.dma_chan = DMA_CHAN_DEFAULT;
   }
 
@@ -549,15 +549,15 @@ void get_model_and_revision(DmaHardware &hw) {
    *
    * 1:  MEM_FLAG_DISCARDABLE = 1 << 0	// can be resized to 0 at any time. Use
    * for cached data
-   *     MEM_FLAG_NORMAL = 0 << 2		// normal allocating alias. Don't use
-   * from ARM 4:  MEM_FLAG_DIRECT = 1 << 2		// 0xC alias uncached 8:
+   *     MEM_FLAG_NORMAL = 0 << 2		// normal allocating alias. Don't
+   * use from ARM 4:  MEM_FLAG_DIRECT = 1 << 2		// 0xC alias uncached 8:
    * MEM_FLAG_COHERENT = 2 << 2	// 0x8 alias. Non-allocating in L2 but coherent
    *     MEM_FLAG_L1_NONALLOCATING =	// Allocating in L2
    *       (MEM_FLAG_DIRECT | MEM_FLAG_COHERENT)
    * 16: MEM_FLAG_ZERO = 1 << 4		// initialise buffer to all zeros
-   * 32: MEM_FLAG_NO_INIT = 1 << 5	// don't initialise (default is initialise
-   * to all ones 64: MEM_FLAG_HINT_PERMALOCK = 1 << 6	// Likely to be locked
-   * for long periods of time
+   * 32: MEM_FLAG_NO_INIT = 1 << 5	// don't initialise (default is
+   * initialise to all ones 64: MEM_FLAG_HINT_PERMALOCK = 1 << 6	//
+   * Likely to be locked for long periods of time
    *
    */
   if (hw.board_model == 1) {
@@ -592,41 +592,51 @@ void fatal(const char *fmt, ...) {
   terminate(0);
 }
 
-//************************** DmaChannel ****************************
+//************************** DmaHardware ****************************
 // static
-std::shared_ptr<DmaChannel> DmaChannel::CreateInstance(const DmaChannelConfig &config) {
+DmaHardware &DmaHardware::GetInstance() {
+  static DmaHardware hardware{};
   static bool inited = false;
   if (!inited) {
     inited = setup_hardware(hardware);
   }
-  auto ch =
-      std::make_shared<DmaChannel>(hardware, config);
+  return hardware;
+}
+
+//************************** DmaChannel ****************************
+// static
+std::shared_ptr<DmaChannel>
+DmaChannel::CreateInstance(const DmaChannelConfig &config) {
+  auto &hw = DmaHardware::GetInstance();
+  auto ch = std::make_shared<DmaChannel>(hw, config);
   ch->Init();
-  hardware.channels.push_back(ch);
+  DmaHardware::GetInstance().channels.push_back(ch);
   return ch;
 }
 
 DmaChannel::DmaChannel(DmaHardware &hw, const DmaChannelConfig &config)
-    : hw{hw}, delay_hw{config.delay_hw}, chNum{config.chNum}, cycle_time_us{config.cycleTimeUs}, step_time_us{config.stepTimeUs}, invert{config.invert} {
+    : hw{hw}, delay_hw{config.delay_hw}, chNum{config.chNum},
+      cycle_time_us{config.cycleTimeUs},
+      step_time_us{config.stepTimeUs}, invert{config.invert} {
   if (step_time_us < 2 || step_time_us > 1000) {
     fatal("Invalid step-size specified");
   }
   if (cycle_time_us < 1000 || cycle_time_us > 1000000) {
     fatal("Invalid cycle-time specified");
   }
-	if (cycle_time_us % step_time_us) {
-		fatal("cycle-time is not a multiple of step-size");
-	}
-	if (cycle_time_us / step_time_us < 100) {
-		fatal("cycle-time must be at least 100 * step-size");
-	}
+  if (cycle_time_us % step_time_us) {
+    fatal("cycle-time is not a multiple of step-size");
+  }
+  if (cycle_time_us / step_time_us < 100) {
+    fatal("cycle-time must be at least 100 * step-size");
+  }
 }
 
 void DmaChannel::Init() {
   num_samples = cycle_time_us / step_time_us;
   num_cbs = num_samples * 2 + maxServoCount;
-  num_pages = (num_cbs * sizeof(dma_cb_t) + num_samples * 4 + maxServoCount * 4 +
-               PAGE_SIZE - 1) >>
+  num_pages = (num_cbs * sizeof(dma_cb_t) + num_samples * 4 +
+               maxServoCount * 4 + PAGE_SIZE - 1) >>
               PAGE_SHIFT;
 
   auto &ch = *this;
@@ -663,37 +673,41 @@ void DmaChannel::Init() {
   ch.turnon_mask =
       (uint32_t *)(mbox.virt_addr + ch.num_samples * sizeof(uint32_t));
   ch.cb_base =
-      (dma_cb_t *)(mbox.virt_addr +
-                   ROUNDUP(ch.num_samples + maxServoCount, 8) * sizeof(uint32_t));
+      (dma_cb_t *)(mbox.virt_addr + ROUNDUP(ch.num_samples + maxServoCount, 8) *
+                                        sizeof(uint32_t));
 
   init_ctrl_data(hw, ch);
   init_hardware(hw, ch);
   ch.isActive = true;
-  printf("DmaChannel::Init() ch=%d, cycle_time_us=%d, step_time_us=%d, num_samples=%d\n", chNum, cycle_time_us, step_time_us, num_samples);
+  printf("DmaChannel::Init() ch=%d, cycle_time_us=%d, step_time_us=%d, "
+         "num_samples=%d\n",
+         chNum, cycle_time_us, step_time_us, num_samples);
 }
 
 void DmaChannel::DeactivateChannel() {
   auto &ch = *this;
-  if (!ch.IsActive()) return;
+  if (!ch.IsActive())
+    return;
   printf("DmaChannel::DeactivateChannel() ch=%d\n", ch.chNum);
   ch.isActive = false;
 
   for (int i = 0; i < maxServoCount; i++) {
-      if (ch.pins[i]) {
-          ch.pins[i]->DeactivatePin();
-      }
+    if (ch.pins[i]) {
+      ch.pins[i]->DeactivatePin();
+    }
   }
   udelay(ch.cycle_time_us);
   ch.dma_reg[DMA_CS] = DMA_RESET;
   udelay(10);
 }
 
-std::shared_ptr<PwmPin> DmaChannel::CreatePin(const DmaPwmPinConfig &pinConfig) {
+std::shared_ptr<PwmPin>
+DmaChannel::CreatePin(const DmaPwmPinConfig &pinConfig) {
   auto pin = std::make_shared<PwmPin>(this->shared_from_this(), pinConfig);
-  
+
   // find next available slot in pins
-  int servo=0;
-  while(servo < maxServoCount && pins[servo] != nullptr) {
+  int servo = 0;
+  while (servo < maxServoCount && pins[servo] != nullptr) {
     servo++;
   }
   if (servo == maxServoCount) {
@@ -708,10 +722,12 @@ std::shared_ptr<PwmPin> DmaChannel::CreatePin(const DmaPwmPinConfig &pinConfig) 
 }
 
 //************************** PwmPin ****************************
-PwmPin::PwmPin(std::shared_ptr<DmaChannel> dmaChannel, const DmaPwmPinConfig &pinConfig):
-  ch{dmaChannel}, gpioPinNum{pinConfig.gpioPinNum}, restoreOnExit{pinConfig.restoreOnExit} {
-    //
-  }
+PwmPin::PwmPin(std::shared_ptr<DmaChannel> dmaChannel,
+               const DmaPwmPinConfig &pinConfig)
+    : ch{dmaChannel}, gpioPinNum{pinConfig.gpioPinNum},
+      restoreOnExit{pinConfig.restoreOnExit} {
+  //
+}
 
 void PwmPin::Init(int slotIndex) {
   this->slotIndex = slotIndex;

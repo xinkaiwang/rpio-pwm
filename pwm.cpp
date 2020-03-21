@@ -131,6 +131,11 @@ int pwm_gpio_release(int gpio) {
   return 0;
 }
 
+// return true/false
+int pwm_host_is_model_pi4() {
+  return DmaHardware::GetInstance().host_is_model_pi4;
+}
+
 int main() {
   printf("init\n");
   int ch = 14;

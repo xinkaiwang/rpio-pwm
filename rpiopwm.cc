@@ -128,9 +128,10 @@ void PwmGpioRelease(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   pwm_gpio_release(gpio_port);
 }
 
-// void Shutdown(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-//   pwm_shutdown();
-// }
+void PwmHostIsPi4(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  auto is_pi4 = pwm_host_is_model_pi4();
+  info.GetReturnValue().Set(Nan::New(is_pi4));
+}
 
 } // namespace
 
@@ -153,8 +154,8 @@ void Init(v8::Local<v8::Object> exports) {
   exports->Set(Nan::New("release_gpio").ToLocalChecked(),
                Nan::New<v8::FunctionTemplate>(PwmGpioRelease)->GetFunction());
 
-  // exports->Set(Nan::New("cleanup").ToLocalChecked(),
-  //              Nan::New<v8::FunctionTemplate>(Shutdown)->GetFunction());
+  exports->Set(Nan::New("host_is_model_pi4").ToLocalChecked(),
+               Nan::New<v8::FunctionTemplate>(PwmHostIsPi4)->GetFunction());
 }
 
 NODE_MODULE(rpiopwm, Init)

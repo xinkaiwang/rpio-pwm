@@ -35,16 +35,20 @@ struct DmaHardware {
   uint32_t dram_phys_base;
   uint32_t mem_flag;
 
+  bool host_is_model_pi4{false};
+
   std::vector<std::weak_ptr<DmaChannel>> channels{};
+
+  static DmaHardware &GetInstance();
 };
 
 //************************** DmaChannel ****************************
 struct DmaChannelConfig {
   DelayHardware delay_hw = DelayHardware::DELAY_VIA_PWM;
-  int chNum = 14; // default 14 (for pi2/3/zero), suggest use 7 for pi4
+  int chNum = 14;          // default 14 (for pi2/3/zero), suggest use 7 for pi4
   int cycleTimeUs = 20000; // 20ms cycle
-  int stepTimeUs = 10; // 10us each step
-  bool invert = false; // default HIGH active
+  int stepTimeUs = 10;     // 10us each step
+  bool invert = false;     // default HIGH active
 };
 
 struct DmaPwmPinConfig {
@@ -63,8 +67,8 @@ public:
 public:
   DmaChannel(DmaHardware &hw, const DmaChannelConfig &config);
 
-  DmaChannel(DmaChannel const&) = delete;
-  DmaChannel& operator = (DmaChannel const&) = delete;
+  DmaChannel(DmaChannel const &) = delete;
+  DmaChannel &operator=(DmaChannel const &) = delete;
 
 public:
   // gpioPinNum (for example gpio_21 = P1_40 = wiringPi_29)
@@ -78,9 +82,9 @@ public:
 
   inline bool IsActive() { return isActive; }
   inline void ThrowIfNotActive() {
-      if (!IsActive()) {
-          fatal("not active");
-      }
+    if (!IsActive()) {
+      fatal("not active");
+    }
   }
 
 public:
@@ -116,25 +120,26 @@ public:
   bool isActive{false};
 
 public:
-  std::vector<std::shared_ptr<PwmPin>> pins = 
-    std::vector<std::shared_ptr<PwmPin>>(maxServoCount);
+  std::vector<std::shared_ptr<PwmPin>> pins =
+      std::vector<std::shared_ptr<PwmPin>>(maxServoCount);
   std::vector<int> servostart = std::vector<int>(maxServoCount);
 };
 
 //************************** PwmPin ****************************
 class PwmPin : public std::enable_shared_from_this<PwmPin> {
 public:
-  PwmPin(std::shared_ptr<DmaChannel> dmaChannel, const DmaPwmPinConfig &pinConfig);
+  PwmPin(std::shared_ptr<DmaChannel> dmaChannel,
+         const DmaPwmPinConfig &pinConfig);
 
-  PwmPin(PwmPin const&) = delete;
-  PwmPin& operator = (PwmPin const&) = delete;
+  PwmPin(PwmPin const &) = delete;
+  PwmPin &operator=(PwmPin const &) = delete;
 
 public:
   inline bool IsActive() { return slotIndex >= 0; }
   inline void ThrowIfNotActive() {
-      if (!IsActive()) {
-          fatal("not active");
-      }
+    if (!IsActive()) {
+      fatal("not active");
+    }
   }
 
 public:
@@ -152,8 +157,7 @@ public:
 public:
   std::shared_ptr<DmaChannel> ch;
   const int gpioPinNum;
-  uint32_t
-      gpiomode; // when we exit, we can restore privious mode for this pin.
+  uint32_t gpiomode; // when we exit, we can restore privious mode for this pin.
 
 public:
   int slotIndex{-1}; // index in array ch.pins (start with 0)

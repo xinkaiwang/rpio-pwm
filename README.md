@@ -27,7 +27,8 @@ pin.set_width(100); // 100 * 10us=1000us
 
 ``` js
 var pwm = require('rpio-pwm');
-var chNum = 14; // DMA channel 14
+// DMA channel 14 for pi2/3/zero, channel 7 for pi4
+var chNum = pwm.host_is_model_pi4() ? 7 : 14;
 var pinNum = 21; // GPIO 21
 
 var cfg = {

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var pwm = require('./index');
 
 // console.log(pwm.hello());
@@ -5,7 +7,7 @@ var pwm = require('./index');
 // DMA channel: (avoid those DMA(s) already occupied by others)
 // for example, GPU uses 1, 3, 6, 7
 // frame buffer uses 0 and the SD card uses 2.
-var chNum = 14; // DMA channel 14
+var chNum = pwm.host_is_model_pi4()?7:14; // DMA channel 14 for pi2/3/zero, channel 7 for pi4
 var pinNum = 21; // GPIO 21
 
 var cfg = {

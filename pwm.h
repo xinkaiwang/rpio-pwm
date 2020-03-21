@@ -45,6 +45,7 @@ int pwm_channel_shutdown(int channel);
 int pwm_gpio_add(int channel, int gpio, int width);
 int pwm_gpio_set_width(int gpio, int width);
 int pwm_gpio_release(int gpio);
+int pwm_host_is_model_pi4(); // return true/false
 
 #ifdef __cplusplus
 }

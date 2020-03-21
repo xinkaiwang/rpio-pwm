@@ -34,10 +34,15 @@ function create_dma_channel(ch /*int*/, cfg /*json obj*/) {
   };
 }
 
+function host_is_model_pi4() {
+  return pwm.host_is_model_pi4();
+}
+
 var exp = {
     hello: function() { return pwm.hello(); },
     // setup: function(minResolutionUs) { pwm.setup(minResolutionUs); },
-    create_dma_channel: create_dma_channel
+    create_dma_channel: create_dma_channel,
+    host_is_model_pi4: host_is_model_pi4
 };
 
 module.exports = exp;
