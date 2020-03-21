@@ -1,7 +1,7 @@
 # rpio-pwm
 High performance soft PWM for raspberry pi. Unlike hardware PWM (which limited to those special 4 hardware PWM ports), rpio-pwm allow you to use any GPIO pins. Unlike other soft PWM solutions (which use lot's CPU cycles to switch on/off based on timers), rpio-pwm use DMA, so literily 0 CPU usage at run time.
 
-Note: This current version (1.0.0) is NOT compatible with privous versions (0.2.x). This is a total re-write, the new API is much simpler and cleaner. And the new code is only depend on servoblaster (no python rpio-pwm anymore).
+Note: This current version (1.0.0) is NOT compatible with privous version (0.2.x). This is a total re-write, the new API is much simpler and also more powerful. And the new code is only depend on servoblaster (not depend on python rpio-pwm project any more).
 
 # install
 
@@ -21,7 +21,7 @@ var pin = ch.create_pwm(pinNum);
 pin.set_width(100); // 100 * 10us=1000us
 ```
 
-## More config
+## More control
 
 ``` js
 var pwm = require('rpio-pwm');
@@ -47,6 +47,11 @@ setTimeout(function () {
 
 `channel`: rpi have 15 DMA channels available (0-14). But you need to know which one might already in use by other services (I found this thread is helpful https://www.raspberrypi.org/forums/viewtopic.php?f=32&t=86339).
 
+`gpio`: multiple GPIO pin can be created under 1 channel (max 32 pin per channel, is it enough?).
+
+`delay_hw`: You may choice to use 0=PWM or 1=PCM as delay hardware source. This can be useful in case if you need 1) setup multiple DMA channel with different step_time_us. 2) one of the hardware is alreay be used by something else. 
+
+`shutdown`: you can shutdown 1 gpio pin by `pin.release()`, or shutdown the whole DMA channel with `ch.shutdown()`. Typically you want to register a signal handler and shutdown DMA channal before exit.
 
 # Thanks to servoblaster
 This rpio-pwm is based on the awesome work of servoblaster (git://github.com/richardghirst/PiBits.git).
