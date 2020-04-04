@@ -192,7 +192,9 @@ static void udelay(int us) {
 // }
 
 void terminate(int dummy) {
-  printf("terminate() %d\n", dummy);
+  if (DmaHardware::GetInstance().current_log_level >= LogLevel::Info) {
+    printf("terminate() %d\n", dummy);
+  }
   for (auto &it : DmaHardware::GetInstance().channels) {
     if (auto locked = it.lock()) {
       locked->DeactivateChannel();
@@ -273,7 +275,9 @@ void set_servo(DmaChannel &ch, int servo, int newWidth) {
   uint32_t mask = 1 << ch.pins[servo]->gpioPinNum;
 
   int oldWidth = ch.pins[servo]->servowidth;
-  printf("set_servo oldWidth=%d new=%d\n", oldWidth, newWidth);
+  if (ch.hw.current_log_level >= LogLevel::Debug) {
+    printf("set_servo oldWidth=%d new=%d\n", oldWidth, newWidth);
+  }
 
   if (newWidth > oldWidth) {
     dp = ch.turnoff_mask + ch.servostart[servo] + newWidth;
@@ -679,16 +683,20 @@ void DmaChannel::Init() {
   init_ctrl_data(hw, ch);
   init_hardware(hw, ch);
   ch.isActive = true;
-  printf("DmaChannel::Init() ch=%d, cycle_time_us=%d, step_time_us=%d, "
-         "num_samples=%d\n",
-         chNum, cycle_time_us, step_time_us, num_samples);
+  if (hw.current_log_level >= LogLevel::Info) {
+    printf("DmaChannel::Init() ch=%d, cycle_time_us=%d, step_time_us=%d, "
+          "num_samples=%d\n",
+          chNum, cycle_time_us, step_time_us, num_samples);
+  }
 }
 
 void DmaChannel::DeactivateChannel() {
   auto &ch = *this;
   if (!ch.IsActive())
     return;
-  printf("DmaChannel::DeactivateChannel() ch=%d\n", ch.chNum);
+  if (hw.current_log_level >= LogLevel::Info) {
+    printf("DmaChannel::DeactivateChannel() ch=%d\n", ch.chNum);
+  }
   ch.isActive = false;
 
   for (int i = 0; i < maxServoCount; i++) {

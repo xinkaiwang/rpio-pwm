@@ -10,6 +10,8 @@ var pwm = require('./index');
 var chNum = pwm.host_is_model_pi4()?7:14; // DMA channel 14 for pi2/3/zero, channel 7 for pi4
 var pinNum = 21; // GPIO 21
 
+pwm.set_log_level(pwm.logLevel.info);
+
 var cfg = {
   cycle_time_us: 20000, // default 20000us (20ms)
   step_time_us: 10, // default 10us

@@ -16,6 +16,15 @@ typedef struct {
   uint32_t info, src, dst, length, stride, next, pad[2];
 } dma_cb_t;
 
+// need keep sync with index.js
+enum class LogLevel {
+  Fatal = 0,
+  Error = 1,
+  Warning = 2,
+  Info = 3,
+  Debug = 4,
+};
+
 //************************** DmaHardware ****************************
 struct DmaHardware {
   // struct timeval *servo_kill_time; // for idle_timeout feature.
@@ -39,6 +48,7 @@ struct DmaHardware {
 
   std::vector<std::weak_ptr<DmaChannel>> channels{};
 
+  LogLevel current_log_level {LogLevel::Info};
   static DmaHardware &GetInstance();
 };
 

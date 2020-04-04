@@ -47,6 +47,8 @@ int pwm_gpio_set_width(int gpio, int width);
 int pwm_gpio_release(int gpio);
 int pwm_host_is_model_pi4(); // return true/false
 
+int pwm_set_log_level(int level);
+
 #ifdef __cplusplus
 }
 #endif

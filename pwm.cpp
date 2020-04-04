@@ -136,6 +136,11 @@ int pwm_host_is_model_pi4() {
   return DmaHardware::GetInstance().host_is_model_pi4;
 }
 
+int pwm_set_log_level(int log_level) {
+  DmaHardware::GetInstance().current_log_level = static_cast<LogLevel>(log_level);
+  return 0;
+}
+
 int main() {
   printf("init\n");
   int ch = 14;

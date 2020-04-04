@@ -133,6 +133,22 @@ void PwmHostIsPi4(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   info.GetReturnValue().Set(Nan::New(is_pi4));
 }
 
+void PwmSetLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  if (info.Length() < 1) {
+    Nan::ThrowTypeError("Wrong number of arguments, expected 1");
+    return;
+  }
+
+  if (!info[0]->IsNumber()) {
+    Nan::ThrowTypeError("Wrong arguments");
+    return;
+  }
+
+  double arg0 = info[0]->NumberValue();
+  int logLevel = (int)arg0;
+  pwm_set_log_level(logLevel);
+}
+
 } // namespace
 
 void Init(v8::Local<v8::Object> exports) {
@@ -156,6 +172,9 @@ void Init(v8::Local<v8::Object> exports) {
 
   exports->Set(Nan::New("host_is_model_pi4").ToLocalChecked(),
                Nan::New<v8::FunctionTemplate>(PwmHostIsPi4)->GetFunction());
+
+  exports->Set(Nan::New("set_log_level").ToLocalChecked(),
+               Nan::New<v8::FunctionTemplate>(PwmSetLogLevel)->GetFunction());
 }
 
 NODE_MODULE(rpiopwm, Init)

@@ -38,11 +38,26 @@ function host_is_model_pi4() {
   return pwm.host_is_model_pi4();
 }
 
+// need keep sync with LogLevel in dma.h
+var logLevel = {
+  fatal: 0,
+  error: 1,
+  warning: 2,
+  info: 3,
+  debug: 4,
+}
+
+function set_log_level(logLevel) {
+  pwm.set_log_level(logLevel);
+}
+
 var exp = {
     hello: function() { return pwm.hello(); },
     // setup: function(minResolutionUs) { pwm.setup(minResolutionUs); },
     create_dma_channel: create_dma_channel,
-    host_is_model_pi4: host_is_model_pi4
+    host_is_model_pi4: host_is_model_pi4,
+    logLevel: logLevel,
+    set_log_level: set_log_level,
 };
 
 module.exports = exp;

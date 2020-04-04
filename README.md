@@ -31,6 +31,8 @@ var pwm = require('rpio-pwm');
 var chNum = pwm.host_is_model_pi4() ? 7 : 14;
 var pinNum = 21; // GPIO 21
 
+pwm.set_log_level(pwm.logLevel.debug); // by default info
+
 var cfg = {
   cycle_time_us: 20000, // default 20000us (20ms)
   step_time_us: 10, // default 10us
