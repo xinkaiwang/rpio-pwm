@@ -3,7 +3,13 @@
 
 namespace {
 
-void Method(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+using v8::Context;
+using v8::Isolate;
+using v8::Local;
+
+NAN_METHOD(Method)
+// void Method(const Nan::FunctionCallbackInfo<v8::Value>& info) 
+{
   info.GetReturnValue().Set(Nan::New("world").ToLocalChecked());
 }
 
@@ -19,14 +25,18 @@ void Method(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 //     return;
 //   }
 
-//   double arg0 = info[0]->NumberValue();
+//  Isolate* isolate = info.GetIsolate();
+//  Local<Context> context = isolate->GetCurrentContext();
+
+//   double arg0 = info[0]->NumberValue(context).FromMaybe(0);
 //   int incrementInUs = (int)arg0;
 
 //   setup(incrementInUs, DELAY_VIA_PWM);
 // }
 
 // pwm.init_channel(14, 3000); // 14=DMA channel 14;  3000=full cycle time is 3000us
-void PwmChannelInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(PwmChannelInit) {
+// void PwmChannelInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   if (info.Length() < 5) {
     Nan::ThrowTypeError("Wrong number of arguments, expected 5");
     return;
@@ -37,11 +47,14 @@ void PwmChannelInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     return;
   }
 
-  double arg0 = info[0]->NumberValue();
-  double arg1 = info[1]->NumberValue();
-  double arg2 = info[2]->NumberValue();
-  double arg3 = info[3]->NumberValue();
-  double arg4 = info[4]->NumberValue();
+  Isolate* isolate = info.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
+
+  double arg0 = info[0]->NumberValue(context).FromMaybe(0);
+  double arg1 = info[1]->NumberValue(context).FromMaybe(0);
+  double arg2 = info[2]->NumberValue(context).FromMaybe(0);
+  double arg3 = info[3]->NumberValue(context).FromMaybe(0);
+  double arg4 = info[4]->NumberValue(context).FromMaybe(0);
   int dma_channel = (int)arg0;
   int cycle_time_us = (int)arg1;
   int step_time_us = (int)arg2;
@@ -52,7 +65,8 @@ void PwmChannelInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 }
 
 // pwm.clear_channel(14); // DMA channel 14
-void PwmChannelShutdown(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(PwmChannelShutdown) {
+//void PwmChannelShutdown(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   if (info.Length() < 1) {
     Nan::ThrowTypeError("Wrong number of arguments, expected 1");
     return;
@@ -63,14 +77,18 @@ void PwmChannelShutdown(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     return;
   }
 
-  double arg0 = info[0]->NumberValue();
+  Isolate* isolate = info.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
+
+  double arg0 = info[0]->NumberValue(context).FromMaybe(0);
   int dma_channel = (int)arg0;
 
   pwm_channel_shutdown(dma_channel);
 }
 
 // pwm.add_channel_pulse(14, 17, 0, 50); // DMA channel 14; GPIO 17; start at 0us, width 50us
-void PwmGpioAdd(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(PwmGpioAdd) {
+//void PwmGpioAdd(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   if (info.Length() < 3) {
     Nan::ThrowTypeError("Wrong number of arguments, expected 3");
     return;
@@ -81,18 +99,21 @@ void PwmGpioAdd(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     return;
   }
 
-  double arg0 = info[0]->NumberValue();
+  Isolate* isolate = info.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
+
+  double arg0 = info[0]->NumberValue(context).FromMaybe(0);
   int dma_channel = (int)arg0; // 14 = DMA channel 14
-  double arg1 = info[1]->NumberValue();
+  double arg1 = info[1]->NumberValue(context).FromMaybe(0);
   int gpio_port = (int)arg1;  // 17 = GPIO 17
-  double arg2 = info[2]->NumberValue();
+  double arg2 = info[2]->NumberValue(context).FromMaybe(0);
   int width = (int)arg2; // 100 = 1000 us (assume resolution is 10us)
 
   pwm_gpio_add(dma_channel, gpio_port, width);
 }
 
-
-void PwmGpioSetWidth(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(PwmGpioSetWidth) {
+// void PwmGpioSetWidth(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   if (info.Length() < 2) {
     Nan::ThrowTypeError("Wrong number of arguments, expected 2");
     return;
@@ -103,15 +124,19 @@ void PwmGpioSetWidth(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     return;
   }
 
-  double arg0 = info[0]->NumberValue();
-  double arg1 = info[1]->NumberValue();
+  Isolate* isolate = info.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
+
+  double arg0 = info[0]->NumberValue(context).FromMaybe(0);
+  double arg1 = info[1]->NumberValue(context).FromMaybe(0);
   int gpio_port = (int)arg0;
   int width = (int)arg1;
 
   pwm_gpio_set_width(gpio_port, width);
 }
 
-void PwmGpioRelease(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(PwmGpioRelease) {
+// void PwmGpioRelease(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   if (info.Length() < 1) {
     Nan::ThrowTypeError("Wrong number of arguments, expected 1");
     return;
@@ -122,18 +147,23 @@ void PwmGpioRelease(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     return;
   }
 
-  double arg0 = info[0]->NumberValue();
+  Isolate* isolate = info.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
+
+  double arg0 = info[0]->NumberValue(context).FromMaybe(0);
   int gpio_port = (int)arg0;
 
   pwm_gpio_release(gpio_port);
 }
 
-void PwmHostIsPi4(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(PwmHostIsPi4) {
+// void PwmHostIsPi4(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   auto is_pi4 = pwm_host_is_model_pi4();
   info.GetReturnValue().Set(Nan::New(is_pi4));
 }
 
-void PwmSetLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(PwmSetLogLevel) {
+// void PwmSetLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   if (info.Length() < 1) {
     Nan::ThrowTypeError("Wrong number of arguments, expected 1");
     return;
@@ -144,37 +174,43 @@ void PwmSetLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     return;
   }
 
-  double arg0 = info[0]->NumberValue();
+  Isolate* isolate = info.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
+
+  double arg0 = info[0]->NumberValue(context).FromMaybe(0);
   int logLevel = (int)arg0;
   pwm_set_log_level(logLevel);
 }
 
 } // namespace
 
-void Init(v8::Local<v8::Object> exports) {
-  exports->Set(Nan::New("hello").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(Method)->GetFunction());
+using namespace v8;
 
-  exports->Set(Nan::New("init_channel").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(PwmChannelInit)->GetFunction());
+NAN_MODULE_INIT(Init) {
 
-  exports->Set(Nan::New("shutdown_channel").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(PwmChannelShutdown)->GetFunction());
+  Nan::Set(target, Nan::New("hello").ToLocalChecked(),
+               Nan::GetFunction(Nan::New<FunctionTemplate>(Method)).ToLocalChecked());
 
-  exports->Set(Nan::New("add_gpio").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(PwmGpioAdd)->GetFunction());
+  Nan::Set(target, Nan::New("init_channel").ToLocalChecked(),
+               Nan::GetFunction(Nan::New<FunctionTemplate>(PwmChannelInit)).ToLocalChecked());
 
-  exports->Set(Nan::New("set_width").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(PwmGpioSetWidth)->GetFunction());
+  Nan::Set(target, Nan::New("shutdown_channel").ToLocalChecked(),
+               Nan::GetFunction(Nan::New<FunctionTemplate>(PwmChannelShutdown)).ToLocalChecked());
 
-  exports->Set(Nan::New("release_gpio").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(PwmGpioRelease)->GetFunction());
+  Nan::Set(target, Nan::New("add_gpio").ToLocalChecked(),
+               Nan::GetFunction(Nan::New<FunctionTemplate>(PwmGpioAdd)).ToLocalChecked());
 
-  exports->Set(Nan::New("host_is_model_pi4").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(PwmHostIsPi4)->GetFunction());
+  Nan::Set(target, Nan::New("set_width").ToLocalChecked(),
+               Nan::GetFunction(Nan::New<FunctionTemplate>(PwmGpioSetWidth)).ToLocalChecked());
 
-  exports->Set(Nan::New("set_log_level").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(PwmSetLogLevel)->GetFunction());
+  Nan::Set(target, Nan::New("release_gpio").ToLocalChecked(),
+               Nan::GetFunction(Nan::New<FunctionTemplate>(PwmGpioRelease)).ToLocalChecked());
+
+  Nan::Set(target, Nan::New("host_is_model_pi4").ToLocalChecked(),
+               Nan::GetFunction(Nan::New<FunctionTemplate>(PwmHostIsPi4)).ToLocalChecked());
+
+  Nan::Set(target, Nan::New("set_log_level").ToLocalChecked(),
+               Nan::GetFunction(Nan::New<FunctionTemplate>(PwmSetLogLevel)).ToLocalChecked());
 }
 
 NODE_MODULE(rpiopwm, Init)
