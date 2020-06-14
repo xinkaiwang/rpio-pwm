@@ -671,7 +671,11 @@ void DmaChannel::Init() {
     fatal("Failed to lock memory\n");
   }
   mbox.virt_addr =
-      static_cast<uint8_t *>(mapmem(BUS_TO_PHYS(mbox.bus_addr), mbox.size));
+      static_cast<uint8_t *>(mapmem(BUS_TO_PHYS(mbox.bus_addr), mbox.size, DEV_MEM));
+  if (!mbox.virt_addr) {
+    mem_free(mbox.handle, mbox.size);
+    fatal("Failed to Open /dev/mem you should be root\n");
+  }
 
   ch.turnoff_mask = (uint32_t *)mbox.virt_addr;
   ch.turnon_mask =

@@ -25,7 +25,6 @@
  *
 */
 
-
 #include "pwm.h"
 
 #include <stdio.h>
@@ -73,7 +72,7 @@ int pwm_channel_init(int ch, int cycle_time_us, int step_time_us, int delay_hw, 
   config.chNum = ch;
   config.cycleTimeUs = cycle_time_us;
   config.stepTimeUs = step_time_us;
-  config.delay_hw = delay_hw?DelayHardware::DELAY_VIA_PCM:DelayHardware::DELAY_VIA_PWM;
+  config.delay_hw = delay_hw ? DelayHardware::DELAY_VIA_PCM : DelayHardware::DELAY_VIA_PWM;
   config.invert = invert != 0;
   auto channel = DmaChannel::CreateInstance(config);
   channels[ch] = channel;

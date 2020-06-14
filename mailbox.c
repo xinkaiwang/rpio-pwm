@@ -40,45 +40,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/sysmacros.h>
 
 #include "mailbox.h"
-
 //#define DEBUG
 
-#define PAGE_SIZE (4*1024)
+void *mapmem(unsigned base, unsigned size, const char *mem_dev) {
+   unsigned pagemask = ~0UL ^ (getpagesize() - 1);
+   unsigned offsetmask = getpagesize() - 1;
 
-void *mapmem(unsigned base, unsigned size)
-{
-   int mem_fd;
-   unsigned offset = base % PAGE_SIZE;
-   base = base - offset;
-   /* open /dev/mem */
-   if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
-      printf("can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
-      exit (-1);
+   /* open /dev/mem or /dev/gpiomem */
+   int mem_fd = open(mem_dev, O_RDWR | O_SYNC);
+   if (mem_fd < 0) {
+      fprintf(stderr, "can't open %s\nThis program should be run as root. Try prefixing command with: sudo\n", mem_dev);
+      return NULL;
    }
-   void *mem = mmap(
-      0,
-      size,
-      PROT_READ|PROT_WRITE,
-      MAP_SHARED/*|MAP_FIXED*/,
-      mem_fd,
-      base);
+
+   void *mem = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, base & pagemask);
 #ifdef DEBUG
    printf("base=0x%x, mem=%p\n", base, mem);
 #endif
    if (mem == MAP_FAILED) {
-      printf("mmap error %d\n", (int)mem);
-      exit (-1);
+      fprintf(stderr, "mmap error %d\n", (int) mem);
+      return NULL;
    }
+
    close(mem_fd);
-   return (char *)mem + offset;
+
+  return (char *)mem + (base & offsetmask);
 }
 
-void *unmapmem(void *addr, unsigned size)
-{
-   int s = munmap(addr, size);
+void *unmapmem(void *addr, unsigned size) {
+   uint32_t pagemask = ~0UL ^ (getpagesize() - 1);
+   uintptr_t baseaddr = (uintptr_t)addr & pagemask;
+
+   int s = munmap((void *)baseaddr, size);
    if (s != 0) {
-      printf("munmap error %d\n", s);
-      exit (-1);
+      fprintf(stderr, "munmap error %d\n", s);
    }
 
    return NULL;
@@ -88,19 +83,19 @@ void *unmapmem(void *addr, unsigned size)
  * use ioctl to send mbox property message
  */
 
-static int mbox_property(int file_desc, void *buf)
-{
+static int mbox_property(int file_desc, void *buf) {
    int fd = file_desc;
    int ret_val = -1;
 
    if (fd < 0) {
       fd = mbox_open();
    }
+
    if (fd >= 0) {
       ret_val = ioctl(fd, IOCTL_MBOX_PROPERTY, buf);
 
       if (ret_val < 0) {
-         printf("ioctl_set_msg failed, errno %d: %m\n", errno);
+         fprintf(stderr, "ioctl_set_msg failed, errno %d: %m\n", errno);
       }
    }
 #ifdef DEBUG
@@ -114,8 +109,7 @@ static int mbox_property(int file_desc, void *buf)
    return ret_val;
 }
 
-unsigned mem_alloc(int file_desc, unsigned size, unsigned align, unsigned flags)
-{
+unsigned mem_alloc(int file_desc, unsigned size, unsigned align, unsigned flags) {
    int i=0;
    unsigned p[32];
 
@@ -141,10 +135,10 @@ unsigned mem_alloc(int file_desc, unsigned size, unsigned align, unsigned flags)
       return p[5];
 }
 
-unsigned mem_free(int file_desc, unsigned handle)
-{
+unsigned mem_free(int file_desc, unsigned handle) {
    int i=0;
    unsigned p[32];
+
    p[i++] = 0; // size
    p[i++] = 0x00000000; // process request
 
@@ -154,16 +148,17 @@ unsigned mem_free(int file_desc, unsigned handle)
    p[i++] = handle;
 
    p[i++] = 0x00000000; // end tag
-   p[0] = i*sizeof *p; // actual size
+   p[0] = i * sizeof *p; // actual size
 
    mbox_property(file_desc, p);
+
    return p[5];
 }
 
-unsigned mem_lock(int file_desc, unsigned handle)
-{
-   int i=0;
+unsigned mem_lock(int file_desc, unsigned handle) {
+   int i = 0;
    unsigned p[32];
+
    p[i++] = 0; // size
    p[i++] = 0x00000000; // process request
 
@@ -181,9 +176,8 @@ unsigned mem_lock(int file_desc, unsigned handle)
       return p[5];
 }
 
-unsigned mem_unlock(int file_desc, unsigned handle)
-{
-   int i=0;
+unsigned mem_unlock(int file_desc, unsigned handle) {
+   int i = 0;
    unsigned p[32];
    p[i++] = 0; // size
    p[i++] = 0x00000000; // process request
@@ -200,10 +194,10 @@ unsigned mem_unlock(int file_desc, unsigned handle)
    return p[5];
 }
 
-unsigned execute_code(int file_desc, unsigned code, unsigned r0, unsigned r1, unsigned r2, unsigned r3, unsigned r4, unsigned r5)
-{
+unsigned execute_code(int file_desc, unsigned code, unsigned r0, unsigned r1, unsigned r2, unsigned r3, unsigned r4, unsigned r5) {
    int i=0;
    unsigned p[32];
+
    p[i++] = 0; // size
    p[i++] = 0x00000000; // process request
 
@@ -225,8 +219,7 @@ unsigned execute_code(int file_desc, unsigned code, unsigned r0, unsigned r1, un
    return p[5];
 }
 
-unsigned qpu_enable(int file_desc, unsigned enable)
-{
+unsigned qpu_enable(int file_desc, unsigned enable) {
    int i=0;
    unsigned p[32];
 
@@ -239,9 +232,10 @@ unsigned qpu_enable(int file_desc, unsigned enable)
    p[i++] = enable;
 
    p[i++] = 0x00000000; // end tag
-   p[0] = i*sizeof *p; // actual size
+   p[0] = i * sizeof *p; // actual size
 
    mbox_property(file_desc, p);
+
    return p[5];
 }
 
@@ -280,12 +274,12 @@ int mbox_open(void) {
    sprintf(filename, "/tmp/mailbox-%d", getpid());
    unlink(filename);
    if (mknod(filename, S_IFCHR|0600, makedev(100, 0)) < 0) {
-      printf("Failed to create mailbox device %s: %m\n", filename);
+      fprintf(stderr, "Failed to create mailbox device %s: %m\n", filename);
       return -1;
    }
    file_desc = open(filename, 0);
    if (file_desc < 0) {
-      printf("Can't open device file %s: %m\n", filename);
+      fprintf(stderr, "Can't open device file %s: %m\n", filename);
       unlink(filename);
       return -1;
    }

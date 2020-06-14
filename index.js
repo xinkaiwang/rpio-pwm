@@ -11,32 +11,16 @@ function create_dma_channel(ch /*int*/, cfg /*json obj*/) {
   function create_pwm(gpio) {
     pwm.add_gpio(ch, gpio, 0);
 
-    function set_width(newWidth) {
-      pwm.set_width(gpio, newWidth);
-    }
-
-    function release() {
-      pwm.release_gpio(gpio);
-    }
-
     return {
-      set_width,
-      release
+      set_width: (newWidth) => pwm.set_width(gpio, newWidth),
+      release: () => pwm.release_gpio(gpio),
     };
-  }
-
-  function shutdown() {
-    pwm.shutdown_channel(ch);
   }
 
   return {
     create_pwm,
-    shutdown
+    shutdown: () => pwm.shutdown_channel(ch),  
   };
-}
-
-function host_is_model_pi4() {
-  return pwm.host_is_model_pi4();
 }
 
 // need keep sync with LogLevel in dma.h
@@ -55,7 +39,7 @@ function set_log_level(logLevel) {
 const exp = {
   // setup: function(minResolutionUs) { pwm.setup(minResolutionUs); },
   create_dma_channel,
-  host_is_model_pi4,
+  host_is_model_pi4: () => pwm.host_is_model_pi4(),
   logLevel,
   set_log_level,
 };

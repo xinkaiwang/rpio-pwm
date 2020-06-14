@@ -2,20 +2,25 @@
 export interface RpioConfig {
   /**
    * by default 20ms
+   * typical value 20000=20ms each cycle
    */
   cycle_time_us?: number;
   /**
    * default 10us
+   * step_time_us: typical value 10=10us each step 
+   * (total steps = 20000/10=2000 steps)
    */
   step_time_us?: number;
   /**
-   * default 0 (PWM)
+   * 0=PWM (default)
+   * 1=PCM
    */
-  delay_hw?: number;
+  delay_hw?: 0 | 1;
   /**
-   * default 0 (don't invert)
+   * 0 don't invert (default)
+   * 1 invert of !0
    */
-  invert?: number;
+  invert?: 0 | 1;
 }
 
 export interface RpioPwm {
