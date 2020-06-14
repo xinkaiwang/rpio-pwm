@@ -2,8 +2,6 @@
 
 var pwm = require('./index');
 
-// console.log(pwm.hello());
-
 // DMA channel: (avoid those DMA(s) already occupied by others)
 // for example, GPU uses 1, 3, 6, 7
 // frame buffer uses 0 and the SD card uses 2.
@@ -25,5 +23,3 @@ setTimeout(function () {
   // Note: it's good idea to cleanup before exit.
   ch.shutdown();
 }, 2000);
-
-// console.log(pwm.hello());

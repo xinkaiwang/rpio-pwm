@@ -52,7 +52,6 @@ function set_log_level(logLevel) {
 }
 
 var exp = {
-    hello: function() { return pwm.hello(); },
     // setup: function(minResolutionUs) { pwm.setup(minResolutionUs); },
     create_dma_channel: create_dma_channel,
     host_is_model_pi4: host_is_model_pi4,
