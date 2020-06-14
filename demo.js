@@ -10,14 +10,15 @@ const pinNum = 21; // GPIO 21
 
 pwm.set_log_level(pwm.logLevel.info);
 
-const cfg = {
+const ch = pwm.create_dma_channel(chNum, {
   cycle_time_us: 20000, // default 20000us (20ms)
   step_time_us: 10, // default 10us
   delay_hw: 0, // 0=PWM, 1=PCM, (default 0)
   invert: 0, // invert high/low? (default no invert)
-};
-const ch = pwm.create_dma_channel(chNum, cfg);
+});
+
 const pin = ch.create_pwm(pinNum);
+
 pin.set_width(1000);
 setTimeout(function () {
   // Note: it's good idea to cleanup before exit.
