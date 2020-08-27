@@ -3,6 +3,7 @@
   "version": "1.0.3",
   "description": "DMA based soft PWM for raspberry pi gpio",
   "main": "index.js",
+  "typings": "index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,6 +25,6 @@
   },
   "homepage": "https://github.com/xinkaiwang/rpio-pwm#readme",
   "dependencies": {
-    "nan": "^2.7.0"
+    "nan": "^2.14.1"
   }
 }

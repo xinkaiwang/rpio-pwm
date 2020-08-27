@@ -14,33 +14,33 @@ npm install rpio-pwm --save
 # Quick Start 
 ## Simple 
 ``` js
-var pwm = require('rpio-pwm');
+const pwm = require('rpio-pwm');
 
-var chNum = 14; // DMA channel 14
-var pinNum = 21; // GPIO 21
-var ch = pwm.create_dma_channel(chNum);
-var pin = ch.create_pwm(pinNum);
+const chNum = 14; // DMA channel 14
+const pinNum = 21; // GPIO 21
+const ch = pwm.create_dma_channel(chNum);
+const pin = ch.create_pwm(pinNum);
 pin.set_width(100); // 100 * 10us=1000us
 ```
 
 ## More control
 
 ``` js
-var pwm = require('rpio-pwm');
+const pwm = require('rpio-pwm');
 // DMA channel 14 for pi2/3/zero, channel 7 for pi4
-var chNum = pwm.host_is_model_pi4() ? 7 : 14;
-var pinNum = 21; // GPIO 21
+const chNum = pwm.host_is_model_pi4() ? 7 : 14;
+const pinNum = 21; // GPIO 21
 
 pwm.set_log_level(pwm.logLevel.debug); // by default info
 
-var cfg = {
+const cfg = {
   cycle_time_us: 20000, // default 20000us (20ms)
   step_time_us: 10, // default 10us
   delay_hw: 0, // 0=PWM, 1=PCM, (default 0)
   invert: 0, // invert high/low (default 0=no invert)
 };
-var ch = pwm.create_dma_channel(chNum, cfg);
-var pin = ch.create_pwm(pinNum);
+const ch = pwm.create_dma_channel(chNum, cfg);
+const pin = ch.create_pwm(pinNum);
 pin.set_width(1000);
 setTimeout(function () {
   // it's good idea to cleanup before exit.
