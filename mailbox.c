@@ -43,8 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#define DEBUG
 
 void *mapmem(unsigned base, unsigned size, const char *mem_dev) {
-   unsigned pagemask = ~0UL ^ (getpagesize() - 1);
-   unsigned offsetmask = getpagesize() - 1;
+   unsigned offset = base % PAGE_SIZE;
+   base = base - offset;
 
    /* open /dev/mem or /dev/gpiomem */
    int mem_fd = open(mem_dev, O_RDWR | O_SYNC);
@@ -52,8 +52,13 @@ void *mapmem(unsigned base, unsigned size, const char *mem_dev) {
       fprintf(stderr, "can't open %s\nThis program should be run as root. Try prefixing command with: sudo\n", mem_dev);
       return NULL;
    }
-
-   void *mem = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, base & pagemask);
+   void *mem = mmap(
+      0,
+      size,
+      PROT_READ|PROT_WRITE,
+      MAP_SHARED/*|MAP_FIXED*/,
+      mem_fd,
+      base);
 #ifdef DEBUG
    printf("base=0x%x, mem=%p\n", base, mem);
 #endif
@@ -61,10 +66,8 @@ void *mapmem(unsigned base, unsigned size, const char *mem_dev) {
       fprintf(stderr, "mmap error %d\n", (int) mem);
       return NULL;
    }
-
    close(mem_fd);
-
-  return (char *)mem + (base & offsetmask);
+   return (char *)mem + offset;
 }
 
 void *unmapmem(void *addr, unsigned size) {
