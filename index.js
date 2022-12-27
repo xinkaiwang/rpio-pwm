@@ -8,7 +8,7 @@ function create_dma_channel(ch /*int*/, cfg /*json obj*/) {
   const invert = cfg.invert || 0; // by default 0 (don't invert)
   pwm.init_channel(ch, cycle_time_us, step_time_us, delay_hw, invert);
 
-  function create_pwm(gpio) {
+  function create_pwm(gpio) { // GPIO pin number
     pwm.add_gpio(ch, gpio, 0);
 
     return {

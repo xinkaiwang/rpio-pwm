@@ -42,6 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mailbox.h"
 //#define DEBUG
 
+#define PAGE_SIZE (4*1024)
+
 void *mapmem(unsigned base, unsigned size, const char *mem_dev) {
    unsigned offset = base % PAGE_SIZE;
    base = base - offset;

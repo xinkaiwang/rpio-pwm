@@ -17,7 +17,7 @@ npm install rpio-pwm --save
 const pwm = require('rpio-pwm');
 
 const chNum = 14; // DMA channel 14
-const pinNum = 21; // GPIO 21
+const pinNum = 21; // GPIO 21 = wiringpi29 = pin40
 const ch = pwm.create_dma_channel(chNum);
 const pin = ch.create_pwm(pinNum);
 pin.set_width(100); // 100 * 10us=1000us
@@ -29,7 +29,7 @@ pin.set_width(100); // 100 * 10us=1000us
 const pwm = require('rpio-pwm');
 // DMA channel 14 for pi2/3/zero, channel 7 for pi4
 const chNum = pwm.host_is_model_pi4() ? 7 : 14;
-const pinNum = 21; // GPIO 21
+const pinNum = 21; // GPIO 21 = wiringpi29 = pin40
 
 pwm.set_log_level(pwm.logLevel.debug); // by default info
 

@@ -143,7 +143,7 @@ int pwm_set_log_level(int log_level) {
 int main() {
   printf("init\n");
   int ch = 14;
-  int pin = 21; // GPIO_21 = Phys_40 = wiringPi_29
+  int pin = 8; // GPIO_21 = Phys_40 = wiringPi_29
   unsigned int sleepUs = 1*1000*1000;
   pwm_channel_init(ch, 20000, 10, 1 /*delay_hw*/, 0 /*invert*/);
   pwm_gpio_add(ch, pin, 2000);

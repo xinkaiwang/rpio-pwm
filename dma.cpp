@@ -515,10 +515,10 @@ void get_model_and_revision(DmaHardware &hw) {
 
   if (strstr(modelstr, "BCM2708"))
     hw.board_model = 1;
-  else if (strstr(modelstr, "BCM2709") || strstr(modelstr, "BCM2835"))
+  else if (strstr(modelstr, "BCM2709") || strstr(modelstr, "BCM2835") || strstr(modelstr, "BCM2711")) // my pi 4 model B is BCM2711
     hw.board_model = 2;
   else
-    fatal("rpio-pwm: Cannot parse the hardware name string\n");
+    fatal("rpio-pwm: Cannot parse the hardware name string %s\n", modelstr);
 
   /* Revisions documented at http://elinux.org/RPi_HardwareHistory */
   ptr = revstr + strlen(revstr) - 3;
